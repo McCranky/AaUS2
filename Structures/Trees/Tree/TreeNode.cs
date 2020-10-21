@@ -5,12 +5,7 @@ using Structures.Common;
 
 namespace Structures.Trees.Tree
 {
-    public interface IKdComparable<TKeyPart> where TKeyPart : IComparable<TKeyPart>
-    {
-        int CompareTo(TreeKey<TKeyPart> other, int level);
-    }
-
-    public class TreeKey<TKeyPart> : IKdComparable<TKeyPart> where TKeyPart : IComparable<TKeyPart>
+    public class TreeKey<TKeyPart> where TKeyPart : IComparable<TKeyPart>
     {
         public TreeKey(params IComparable<TKeyPart>[] keyParts)
         {
