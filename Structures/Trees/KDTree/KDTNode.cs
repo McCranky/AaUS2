@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
-    public class KDTNode<TKey, TValue> : TreeNode<TKey, TValue> where TKey : IList<IComparable<TKey>>
+    public class KDTNode<TKeyPart, TValue> : TreeNode<TKeyPart, TValue> where TKeyPart : IComparable<TKeyPart>
     {
         public int Level { get; set; }
-        public KDTNode(List<TKey> keys, TValue value) : base(keys, value) { }
-        public KDTNode(TreeNode<TKey, TValue> other) : base(other) { }
+        public KDTNode(TreeKey<TKeyPart> key, TValue value) : base(key, value) { }
+        public KDTNode(TreeNode<TKeyPart, TValue> other) : base(other) { }
     }
 }

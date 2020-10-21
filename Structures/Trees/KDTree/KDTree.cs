@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
-    public class KDTree<TKey, TValue> : Tree<TKey, TValue> where TKey :  IList<TKey>, IComparable<TKey>
+    public class KDTree<TKeyPart, TValue> : Tree<TKeyPart, TValue> where TKeyPart : IComparable<TKeyPart>
     {
-        public KDTNode<TKey, TValue> Root { get; private set; }
+        public KDTNode<TKeyPart, TValue> Root { get; private set; }
         public int Count { get; private set; }
 
         public KDTree()
@@ -16,21 +13,20 @@ namespace Structures.Trees.KDTree
             Root = null;
             Count = 0;
         }
-        
-        public override TValue Search(TKey key)
+
+        public override TValue Search(TreeKey<TKeyPart> key)
         {
             throw new NotImplementedException();
         }
 
-        public override void Remove(TKey key)
+        public override void Remove(TreeKey<TKeyPart> key)
         {
             throw new NotImplementedException();
         }
 
-        public override void Add(IEnumerable<TKey> keys, TValue value)
+        public override void Add(TreeKey<TKeyPart> key, TValue value)
         {
-            var keyList = keys.ToList();
-            var newNode = new KDTNode<TKey, TValue>(keyList, value);
+            var newNode = new KDTNode<TKeyPart, TValue>(key, value);
             if (Root == null)
             {
                 newNode.Level = 0;
@@ -43,7 +39,7 @@ namespace Structures.Trees.KDTree
                 while (!foundPlace)
                 {
                     var level = lastNode.Level;
-                    var result = keyList[level][level].CompareTo(lastNode.Keys[level]);
+                    var result = key.CompareTo(lastNode.Key, level);
                     var child = result <= 0 ? lastNode.LeftChild : lastNode.RightChild;
                     if (child == null)
                     {
@@ -53,14 +49,14 @@ namespace Structures.Trees.KDTree
                     }
                     else
                     {
-                        lastNode = child as KDTNode<TKey, TValue>;
+                        lastNode = child as KDTNode<TKeyPart, TValue>;
                     }
                 }
             }
 
         }
 
-        private bool TryFindBSTNode(KDTNode<TKey, TValue> node, out KDTNode<TKey, TValue> nearestNode)
+        private bool TryFindBSTNode(KDTNode<TKeyPart, TValue> node, out KDTNode<TKeyPart, TValue> nearestNode)
         {
             nearestNode = null;
             if (Root == null)
@@ -69,7 +65,7 @@ namespace Structures.Trees.KDTree
             }
 
             nearestNode = Root;
-            
+
             return false;
         }
     }
