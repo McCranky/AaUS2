@@ -1,11 +1,13 @@
-﻿namespace Structures.Common
+﻿using System;
+
+namespace Structures.Common
 {
     /// <summary>
     /// Prvok uchvávajúci dáta
     /// </summary>
     /// <typeparam name="T">Typ dát uchovávaných v prvku</typeparam>
     /// <remarks>Používa sa ako predok pre vnútorné prvky štruktúr (napr. zoznam, strom, ...)</remarks>
-    public class DataItem<T>
+    public class ValueItem<T>
     {
         /// <summary>
         /// Dáta
@@ -16,7 +18,7 @@
         /// Konstruktor
         /// </summary>
         /// <param name="data">Data, ktoré uchováva</param>
-        public DataItem(T data)
+        public ValueItem(T data)
         {
             Data = data;
         }
@@ -24,10 +26,16 @@
         /// Kopírovací konštruktor
         /// </summary>
         /// <param name="other">Prvok uchovávajúci dáta, z ktorého sa prevezmú vlastnosti</param>
-        public DataItem(DataItem<T> other)
+        public ValueItem(ValueItem<T> other)
         {
             Data = other.Data;
         }
+    }
+
+    public abstract class KeyItem<T> : IComparable<T>
+    {
+        
+        public abstract int CompareTo(T other);
     }
 
     public class Structure

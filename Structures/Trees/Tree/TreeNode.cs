@@ -1,19 +1,26 @@
-﻿using Structures.Common;
+﻿using System;
+using System.Collections.Generic;
+using Structures.Common;
 
 namespace Structures.Trees.Tree
 {
-    class TreeNode<T> : DataItem<T>
+    public abstract class TreeNode<TKey, TValue>  : ValueItem<TValue> where TKey : IList<TKey>, IComparable<TKey>
     {
-        public TreeNode<T> Parent { get; private set; }
+        public List<TKey> Keys { get; private set; }
+        public TreeNode<TKey, TValue> Parent { get; private set; }
+        public TreeNode<TKey, TValue> LeftChild { get; private set; }
+        public TreeNode<TKey, TValue> RightChild { get; private set; }
 
-        public TreeNode(T data) : base(data)
+        public TreeNode(List<TKey> keys, TValue value) : base(value)
         {
             Parent = null;
+            Keys = keys;
         }
 
-        public TreeNode(TreeNode<T> other) : base(other)
+        public TreeNode(TreeNode<TKey, TValue> other) : base(other.Parent.Data)
         {
             Parent = other.Parent;
+            Keys = other.Keys;
         }
 
         public bool IsRoot => Parent == null;
@@ -22,20 +29,20 @@ namespace Structures.Trees.Tree
             Parent = null;
         }
 
-        public void SetParent(TreeNode<T> parent)
+        public void SetParent(TreeNode<TKey, TValue> parent)
         {
             Parent = parent;
         }
 
-        public virtual TreeNode<T> ShallowCopy() => null;
-        public virtual TreeNode<T> DeepCopy() => null;
-        public virtual bool IsLeaf() => false;
-        public virtual TreeNode<T> GetBrother(int brotherOrder) => null;
-        public virtual TreeNode<T> GetSon(int sonOrder) => null;
-        public virtual void InsertSon(TreeNode<T> son, int order) { }
-        public virtual TreeNode<T> ReplaceSon(TreeNode<T> son, int order) => null;
-        public virtual TreeNode<T> RemoveSon(int order) => null;
-        public virtual int Degree() => 0;
-        public virtual int SizeOfSubtree() => 0;
+        // public abstract TreeNode<T> ShallowCopy();
+        // public abstract TreeNode<T> DeepCopy();
+        // public abstract bool IsLeaf();
+        // public abstract TreeNode<T> GetBrother(int brotherOrder);
+        // public abstract TreeNode<T> GetSon(int sonOrder);
+        // public abstract void InsertSon(TreeNode<T> son, int order) { }
+        // public abstract TreeNode<T> ReplaceSon(TreeNode<T> son, int order);
+        // public abstract TreeNode<T> RemoveSon(int order);
+        // public abstract int Degree();
+        // public abstract int SizeOfSubtree();
     }
 }

@@ -1,21 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Structures.Common;
 
 namespace Structures.Trees.Tree
 {
-    class Tree<T> : Structure, IEnumerable<T>
+    public abstract class Tree<TKey, TValue> where TKey : IList<TKey>, IComparable<TKey>
     {
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            
-            throw new System.NotImplementedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        public abstract TValue Search(TKey key);
+        public abstract void Remove(TKey key);
+        public abstract void Add(IEnumerable<TKey> keys, TValue value);
     }
 }
