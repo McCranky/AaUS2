@@ -4,7 +4,7 @@ using Structures.Common;
 
 namespace Structures.Trees.Tree
 {
-    public abstract class TreeNode<TKey, TValue>  : ValueItem<TValue> where TKey : IList<TKey>, IComparable<TKey>
+    public abstract class TreeNode<TKey, TValue>  : ValueItem<TValue> where TKey : IComparable
     {
         public List<TKey> Keys { get; private set; }
         public TreeNode<TKey, TValue> Parent { get; private set; }

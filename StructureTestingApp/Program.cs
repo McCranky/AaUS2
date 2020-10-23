@@ -36,16 +36,43 @@ namespace StructureTestingApp
             return other.Latitude == Latitude ? 0 : 1;
         }
     }
+    
+    public class Kluc : IComparable
+    {
+        public int CompareTo(object? obj)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
 
             var gps1 = new GPSPoint(GPSPoint.CardinalDirections.East, 22.3, GPSPoint.CardinalDirections.South, 54.3);
-            var tree = new KDTree<List<GPSPoint>, int>();
-            tree.Add(new []{gps1}, 69);
-            
-            Console.WriteLine($"Wow");
+            var tree = new KDTree<IComparable, string>(2);
+            tree.Add(new IComparable[]{23,35}, "Nitra");
+            tree.Add(new IComparable[]{20,33}, "Sereď");
+            tree.Add(new IComparable[]{25,36}, "Topoľčianky");
+            tree.Add(new IComparable[]{16,31}, "Galanta");
+            tree.Add(new IComparable[]{14,39}, "Senica");
+            tree.Add(new IComparable[]{28,34}, "Tlmače");
+            tree.Add(new IComparable[]{24,40}, "Bošany");
+            tree.Add(new IComparable[]{13,32}, "Bratislava");
+            tree.Add(new IComparable[]{14,41}, "Hodonín");
+            tree.Add(new IComparable[]{17,42}, "Trnava");
+            tree.Add(new IComparable[]{29,46}, "Bojnice");
+            tree.Add(new IComparable[]{27,43}, "Nováky");
+            tree.Add(new IComparable[]{26,35}, "Moravce");
+            tree.Add(new IComparable[]{30,33}, "Levice");
+            tree.Add(new IComparable[]{17,42}, "Hohoo");
+            //var pole = new IComparable[] {1, 'v', "vwvw"};
+            //tree.Add(pole, 69);
+            foreach (var node in tree)
+            {
+                Console.WriteLine(node.Data);
+            }
         }
     }
 }

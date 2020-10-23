@@ -32,10 +32,9 @@ namespace Structures.Common
         }
     }
 
-    public abstract class KeyItem<T> : IComparable<T>
+    public abstract class KeyItem<T> where T : IComparable
     {
-        
-        public abstract int CompareTo(T other);
+
     }
 
     public class Structure

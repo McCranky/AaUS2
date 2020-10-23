@@ -6,15 +6,17 @@ using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
-    public class KDTree<TKey, TValue> : Tree<TKey, TValue> where TKey :  IList<TKey>, IComparable<TKey>
+    public class KDTree<TKey, TValue> : Tree<TKey, TValue>, IEnumerable<KDTNode<TKey, TValue>> where TKey : IComparable
     {
         public KDTNode<TKey, TValue> Root { get; private set; }
         public int Count { get; private set; }
+        public int KeyCount { get; private set; }
 
-        public KDTree()
+        public KDTree(int keyCount)
         {
             Root = null;
             Count = 0;
+            KeyCount = keyCount;
         }
         
         public override TValue Search(TKey key)
@@ -43,34 +45,66 @@ namespace Structures.Trees.KDTree
                 while (!foundPlace)
                 {
                     var level = lastNode.Level;
-                    var result = keyList[level][level].CompareTo(lastNode.Keys[level]);
-                    var child = result <= 0 ? lastNode.LeftChild : lastNode.RightChild;
-                    if (child == null)
+                    var result = keyList[level].CompareTo(lastNode.Keys[level]);
+
+                    if (lastNode[result] == null)
                     {
-                        newNode.Level = level;
-                        child = newNode;
+                        newNode.Level = (level + 1) % KeyCount;
+                        lastNode[result] = newNode;
+                        ++Count;
                         foundPlace = true;
                     }
                     else
                     {
-                        lastNode = child as KDTNode<TKey, TValue>;
+                        lastNode = lastNode[result];
                     }
                 }
             }
 
         }
 
-        private bool TryFindBSTNode(KDTNode<TKey, TValue> node, out KDTNode<TKey, TValue> nearestNode)
+        private bool TryFindBSTNode(IEnumerable<TKey> keys, out int count)
         {
-            nearestNode = null;
-            if (Root == null)
+            count = 0;
+            var lastNode = Root;
+            var founded = false;
+            
+            if (lastNode == null)
             {
                 return false;
             }
 
-            nearestNode = Root;
+            var keyList = keys.ToList();
+            // var firstMatch = false;
             
-            return false;
+            while (lastNode != null)
+            {
+                if (lastNode.Keys == keyList)
+                {
+                    // firstMatch = true;
+                    var matches = new List<KDTNode<TKey, TValue>>();
+                    matches.Add(lastNode);
+                    var lastLevel = lastNode.Level;
+
+                    lastNode = lastNode.LeftChild; // lebo tam ešte môže byť noda s rovnakými kľúčmi
+                    if (lastNode.Keys[lastLevel].CompareTo(keyList[lastLevel]) == 0)
+                    {
+                        
+                    }
+                }
+                else
+                {
+                    var level = lastNode.Level;
+                    lastNode = lastNode[lastNode.Keys[level].CompareTo(keyList[level])];
+                }
+            }
+            
+            return founded;
+        }
+
+        public IEnumerator<KDTNode<TKey, TValue>> GetEnumerator()
+        {
+            return new KDTEnumerator<TKey, TValue>(Root);
         }
     }
 }
