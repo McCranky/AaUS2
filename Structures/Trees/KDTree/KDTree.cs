@@ -63,9 +63,9 @@ namespace Structures.Trees.KDTree
 
         }
 
-        private bool TryFindBSTNode(IEnumerable<TKey> keys, out int count)
+        public bool TryFindKDTNodes(IEnumerable<TKey> keys, out List<KDTNode<TKey, TValue>> values)
         {
-            count = 0;
+            values = new List<KDTNode<TKey, TValue>>();
             var lastNode = Root;
             var founded = false;
             
@@ -77,25 +77,47 @@ namespace Structures.Trees.KDTree
             var keyList = keys.ToList();
             // var firstMatch = false;
             
-            while (lastNode != null)
+            while (!founded)
             {
-                if (lastNode.Keys == keyList)
+                if (lastNode.Keys.SequenceEqual(keyList))
                 {
-                    // firstMatch = true;
+                    values.Add(lastNode);
+                    founded = true;
                     var matches = new List<KDTNode<TKey, TValue>>();
                     matches.Add(lastNode);
-                    var lastLevel = lastNode.Level;
+                    // var lastLevel = lastNode.Level;
 
-                    lastNode = lastNode.LeftChild; // lebo tam ešte môže byť noda s rovnakými kľúčmi
-                    if (lastNode.Keys[lastLevel].CompareTo(keyList[lastLevel]) == 0)
+                    if (lastNode.LeftChild == null ||
+                        keyList[lastNode.Level].CompareTo(lastNode.LeftChild.Keys[lastNode.Level]) != 0)
                     {
-                        
+                        break; // prišli sme po koreň alebo ľavý syn má už inú hodnotu kľúča
                     }
+                    
+                    // lastNode = lastNode.LeftChild; // v tomto podstrome ešte môžme nájsť rovnaké hodnotyy klúčov
+                    do
+                    {
+                        var level = lastNode.Level;
+                        lastNode = lastNode[
+                            keyList[level].CompareTo(lastNode.Keys[level])
+                        ];
+                        
+                        if (lastNode.Keys.SequenceEqual(keyList))
+                        {
+                            values.Add(lastNode);
+                        }
+                    } while (!lastNode.IsLeaf);
                 }
                 else
                 {
+                    // Console.WriteLine(lastNode.Data);
                     var level = lastNode.Level;
-                    lastNode = lastNode[lastNode.Keys[level].CompareTo(keyList[level])];
+                    lastNode = lastNode[
+                            keyList[level].CompareTo(lastNode.Keys[level])
+                    ];
+                    if (lastNode == null)
+                    {
+                        break;
+                    }
                 }
             }
             

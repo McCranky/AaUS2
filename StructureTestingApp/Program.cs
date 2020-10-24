@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Structures;
 using Structures.Common;
 using Structures.Trees.KDTree;
@@ -36,20 +37,18 @@ namespace StructureTestingApp
             return other.Latitude == Latitude ? 0 : 1;
         }
     }
-    
-    public class Kluc : IComparable
-    {
-        public int CompareTo(object? obj)
-        {
-            throw new NotImplementedException();
-        }
-    }
 
     class Program
     {
+         class MyClass         {
+            public int Type { get; set; }
+            MyClass()
+            {
+                Type = 2;
+            }
+        }
         static void Main(string[] args)
         {
-
             var gps1 = new GPSPoint(GPSPoint.CardinalDirections.East, 22.3, GPSPoint.CardinalDirections.South, 54.3);
             var tree = new KDTree<IComparable, string>(2);
             tree.Add(new IComparable[]{23,35}, "Nitra");
@@ -67,12 +66,24 @@ namespace StructureTestingApp
             tree.Add(new IComparable[]{26,35}, "Moravce");
             tree.Add(new IComparable[]{30,33}, "Levice");
             tree.Add(new IComparable[]{17,42}, "Hohoo");
-            //var pole = new IComparable[] {1, 'v', "vwvw"};
-            //tree.Add(pole, 69);
-            foreach (var node in tree)
+
+
+            var col1 = new IComparable[] {17, 42};
+            var col2 = new IComparable[] {17, 42};
+            Console.WriteLine(col1.SequenceEqual(col2));
+            
+            if (tree.TryFindKDTNodes(new IComparable[]{17,42}, out var nody))
             {
-                Console.WriteLine(node.Data);
+                foreach (var noda in nody)
+                {
+                    Console.WriteLine(noda.Data);
+                }
             }
+            
+            // foreach (var node in tree)
+            // {
+            //     Console.WriteLine(node.Data);
+            // }
         }
     }
 }
