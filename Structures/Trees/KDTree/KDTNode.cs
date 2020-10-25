@@ -7,12 +7,13 @@ namespace Structures.Trees.KDTree
 {
     public class KDTNode<TKey, TValue> : ValueItem<TValue> where TKey : IComparable
     {
-        public Guid PrimaryKey { get; } = Guid.NewGuid();
+        public Guid PrimaryKey { get; set; } = Guid.NewGuid();
         public int Level { get; set; }
-        public List<TKey> Keys { get; private set; }
-        public KDTNode<TKey, TValue> Parent { get; private set; }
-        public KDTNode<TKey, TValue> LeftChild { get; private set; }
-        public KDTNode<TKey, TValue> RightChild { get; private set; }
+        public int Depth { get; set; }
+        public List<TKey> Keys { get; set; }
+        public KDTNode<TKey, TValue> Parent { get; set; }
+        public KDTNode<TKey, TValue> LeftChild { get; set; }
+        public KDTNode<TKey, TValue> RightChild { get; set; }
 
         public KDTNode(List<TKey> keys, TValue value) : base(value)
         {
@@ -45,7 +46,9 @@ namespace Structures.Trees.KDTree
                 }
             }
         }
-
+        public bool HasParent => Parent != null;
         public bool IsLeaf => LeftChild == null && RightChild == null;
+        public bool IsLeftSon => Parent != null && Parent.LeftChild == this;
+        public bool IsRightSon => Parent != null && Parent.RightChild == this;
     }
 }
