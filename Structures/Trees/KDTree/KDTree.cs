@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
@@ -96,16 +97,19 @@ namespace Structures.Trees.KDTree
                     if (lastNode.LeftChild == null ||
                         keyList[lastNode.Level].CompareTo(lastNode.LeftChild.Keys[lastNode.Level]) != 0)
                     {
-                        break; // prišli sme po koreň alebo ľavý syn má už inú hodnotu kľúča
+                        break; // prišli sme po list alebo ľavý syn má už inú hodnotu kľúča
                     }
                     
                     do
                     {
                         var level = lastNode.Level;
-                        lastNode = lastNode[
-                            keyList[level].CompareTo(lastNode.Keys[level])
-                        ];
-                        
+                        var result = keyList[level].CompareTo(lastNode.Keys[level]);
+                        lastNode = lastNode[result];
+                        if (lastNode == null)
+                        {
+                            break;
+                        }
+                        //TODO tu to pada || kvoli rovnakym hodnotam vpravo???
                         if (lastNode.Keys.SequenceEqual(keyList))
                         {
                             values.Add(lastNode);
@@ -115,9 +119,8 @@ namespace Structures.Trees.KDTree
                 else
                 {
                     var level = lastNode.Level;
-                    lastNode = lastNode[
-                            keyList[level].CompareTo(lastNode.Keys[level])
-                    ];
+                    var result = keyList[level].CompareTo(lastNode.Keys[level]);
+                    lastNode = lastNode[result];
                     if (lastNode == null)
                     {
                         break;
@@ -144,16 +147,6 @@ namespace Structures.Trees.KDTree
                 while (current != null)
                 {
                     toProcess.Push(current);
-                    // TODO tato podmienka asi nema zmysel 
-                    // if (current.Level == levelOfInteress &&
-                    //     current.Keys[levelOfInteress].CompareTo(min) < 0) // min je menej ako hodnota kluča akktualnej nody takže vlavo už nejdeme
-                    // {
-                    //     current = null;
-                    // }
-                    // else
-                    // {
-                    //     current = current.LeftChild;
-                    // }
 
                     var res = findValue.CompareTo(current.Keys[levelOfInteress]);
                     if (type == InOrderType.Next)
@@ -211,16 +204,6 @@ namespace Structures.Trees.KDTree
                 Console.WriteLine("Node with given keys doesn't exist.");
                 return;
             }
-            
-            // jeden kandidát, ktorý je listom TODO remove this if
-            // if (candidates.Count == 1 && candidates[0].IsLeaf)
-            // {
-            //     Console.WriteLine($"Node successfully deleted: {candidates[0].Data}");
-            //     candidates[0].Parent. = null;
-            //     candidates[0].Parent = null;
-            //     --Count;
-            //     return;
-            // }
 
             var index = 0;
             // vyber konkretnej nody pre mazanie
@@ -237,8 +220,16 @@ namespace Structures.Trees.KDTree
             }
             
             var nodeToReplace = candidates[index];
-            while (nodeToReplace != null)
+            var toReadd = new Stack<KDTNode<TKey, TValue>>();
+            var toDelete = new Stack<KDTNode<TKey, TValue>>();
+            
+            while (nodeToReplace != null || toDelete.Count > 1)
             {
+                if (nodeToReplace == null)
+                {
+                    nodeToReplace = toDelete.Pop();
+                    toReadd.Push(new KDTNode<TKey, TValue>(nodeToReplace));
+                }
                 if (nodeToReplace.IsLeaf)
                 {
                     if (nodeToReplace.HasParent)
@@ -277,24 +268,34 @@ namespace Structures.Trees.KDTree
                     else // najdi in order nasledovnika
                     {
                         replacementCandidates = FindInOrder(nodeToReplace, InOrderType.Next);
-                        KDTNode<TKey, TValue> theChosenOne = null;
-                        foreach (var cand in replacementCandidates.Where(cand => cand.IsLeaf))
+                        // TODO LIFO ich odstraniť a znovu pridať
+                        if (replacementCandidates.Count > 1)
                         {
-                            theChosenOne = cand;
-                            break;
+                            for (int i = replacementCandidates.Count - 1; i >= 0; i--)
+                            {
+                                if (i == replacementCandidates.Count - 1) continue;
+                                toDelete.Push(replacementCandidates[i]);
+                            }
+
+                                    var theChosenOne = replacementCandidates[replacementCandidates.Count - 1];
+                                    AssignNodes(ref nodeToReplace,ref  theChosenOne);
+                                    nodeToReplace = theChosenOne;
                         }
-                        theChosenOne ??= replacementCandidates[0];
-                        AssignNodes(ref nodeToReplace,ref  theChosenOne);
-                        if (nodeToReplace.LeftChild == null)
+                        else
                         {
-                            // nodeToReplace.LeftChild = nodeToReplace.RightChild;
-                            // nodeToReplace.RightChild = null;
+                            var theChosenOne = replacementCandidates[0];
+                            AssignNodes(ref nodeToReplace,ref  theChosenOne);
+                            nodeToReplace = theChosenOne;
                         }
-                        nodeToReplace = theChosenOne;
                     }
                 }
             }
-            Console.WriteLine($"Nodes successfully replaced");
+
+            foreach (var node in toReadd)
+            {
+                Add(node.Keys, node.Data);
+            }
+            // Console.WriteLine($"Nodes successfully replaced");
         }
 
         private void AssignNodes(ref KDTNode<TKey, TValue> nodeToBeAssigned,ref  KDTNode<TKey, TValue> toThisNode)

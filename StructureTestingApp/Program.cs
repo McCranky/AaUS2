@@ -60,7 +60,7 @@ namespace StructureTestingApp
             // testNodes.Add(new KDTNode<IComparable, string>(new IComparable[]{30,33}.ToList(), "Levice"));
             // testNodes.Add(new KDTNode<IComparable, string>(new IComparable[]{17,42}.ToList(), "Hohoo"));
             
-            Random rnd = new Random();
+            Random rnd = new Random(1);
             var insertedKeys = new List<IComparable[]>();
             // insertedKeys.Add(new IComparable[] {2, 65});
             // insertedKeys.Add(new IComparable[] {3, 12});
@@ -96,18 +96,32 @@ namespace StructureTestingApp
             // }
             //
             // Console.WriteLine(tree.Count);
-            for (int i = 0; i < 10; i++)
+            Console.WriteLine($"Pred vložením: {tree.Count}");
+            for (int i = 0; i < 8; i++)
             {
                 var keys = new IComparable[] {rnd.Next() % 10, rnd.Next() % 10};
                 insertedKeys.Add(keys);
+                Console.WriteLine($"Insertig [{keys[0]}, {keys[1]}] Data: {i}");
                 tree.Add(keys, $"{i}");
             }
-
-            foreach (var keys in insertedKeys)
+            Console.WriteLine($"Po vložení: {tree.Count}");
+            foreach (var VARIABLE in tree)
             {
-                tree.DeleteNode(keys);
+                Console.WriteLine(VARIABLE.Data);
             }
-            Console.WriteLine(tree.Count);
+
+            for (var index = 0; index < insertedKeys.Count; index++)
+            {
+                var keys = insertedKeys[index];
+                Console.WriteLine($"Deleting [{keys[0]}, {keys[1]}] Data: {index}");
+                tree.DeleteNode(keys);
+                foreach (var VARIABLE in tree)
+                {
+                    Console.WriteLine(VARIABLE.Data);
+                }
+            }
+
+            Console.WriteLine($"Po mazaní: {tree.Count}");
         }
     }
 }

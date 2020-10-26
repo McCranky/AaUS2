@@ -9,7 +9,6 @@ namespace Structures.Trees.KDTree
     {
         public Guid PrimaryKey { get; set; } = Guid.NewGuid();
         public int Level { get; set; }
-        public int Depth { get; set; }
         public List<TKey> Keys { get; set; }
         public KDTNode<TKey, TValue> Parent { get; set; }
         public KDTNode<TKey, TValue> LeftChild { get; set; }
