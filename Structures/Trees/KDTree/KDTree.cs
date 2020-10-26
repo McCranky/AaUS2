@@ -7,10 +7,10 @@ using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
-    public enum InOrderType
+    public enum Side
     {
-        Previous,
-        Next
+        Right,
+        Left
     }
     
     public class KDTree<TKey, TValue> : Tree<TKey, TValue>, IEnumerable<KDTNode<TKey, TValue>> where TKey : IComparable
@@ -24,16 +24,6 @@ namespace Structures.Trees.KDTree
             Root = null;
             Count = 0;
             KeyCount = keyCount;
-        }
-        
-        public override TValue Search(TKey key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Remove(TKey key)
-        {
-            throw new NotImplementedException();
         }
 
         public override void Add(IEnumerable<TKey> keys, TValue value)
@@ -72,7 +62,7 @@ namespace Structures.Trees.KDTree
 
         }
 
-        public bool TryFindKDTNodes(IEnumerable<TKey> keys, out List<KDTNode<TKey, TValue>> values)
+        public bool TryFindKdtNodes(IEnumerable<TKey> keys, out List<KDTNode<TKey, TValue>> values)
         {
             values = new List<KDTNode<TKey, TValue>>();
             var lastNode = Root;
@@ -131,14 +121,14 @@ namespace Structures.Trees.KDTree
             return founded;
         }
 
-        private List<KDTNode<TKey, TValue>> FindInOrder(KDTNode<TKey, TValue> startPoint, InOrderType type)
+        private List<KDTNode<TKey, TValue>> FindMaximum(KDTNode<TKey, TValue> startPoint, Side side)
         {
             var result = new List<KDTNode<TKey, TValue>>();
             var toProcess = new Stack<KDTNode<TKey, TValue>>();
             var inOrderInspection = new Queue<KDTNode<TKey, TValue>>();
             
             var levelOfInteress = startPoint.Level;
-            var current = type == InOrderType.Next ? startPoint.RightChild : startPoint.LeftChild;
+            var current = side == Side.Right ? startPoint.RightChild : startPoint.LeftChild;
             var findValue = current.Keys[levelOfInteress];
             
             // naplnenie in order prehliadky prvkov čo nas zaujimaju a ziskanie minimalnej hodnoty
@@ -149,18 +139,10 @@ namespace Structures.Trees.KDTree
                     toProcess.Push(current);
 
                     var res = findValue.CompareTo(current.Keys[levelOfInteress]);
-                    if (type == InOrderType.Next)
-                    {
-                        findValue = res > 0 ? current.Keys[levelOfInteress] : findValue;
-                    }
-                    else
-                    {
-                        findValue = res < 0 ? current.Keys[levelOfInteress] : findValue;
-                    }
+                    findValue = res < 0 ? current.Keys[levelOfInteress] : findValue;
                     
                     // ak hladame predchodcu a sme na urpvni ktora nas zaujima a vlavo su už menšie prvky, tak vľavo nepokračujeme
-                    if (type == InOrderType.Previous &&
-                        current.Level == levelOfInteress &&
+                    if (current.Level == levelOfInteress &&
                         findValue.CompareTo(current.Keys[levelOfInteress]) > 0)
                     {
                         current = null;
@@ -173,17 +155,7 @@ namespace Structures.Trees.KDTree
 
                 var popped = toProcess.Pop();
                 inOrderInspection.Enqueue(popped);
-                if (type == InOrderType.Next)
-                {
-                    if (popped.Level != levelOfInteress) // ak je to rovnaka uroveň, tak do prava nechceme isť, lebo tam su len vačšie prvky
-                    {
-                        current = popped.RightChild;
-                    }
-                }
-                else // pre pripad nasledovnika určite chceme isť doprava v každom pripade
-                {
-                    current = popped.RightChild;
-                }
+                current = popped.RightChild;
             }
             // vyber prvkov s najmenšou hodnotou hladaneho kluča z prehliadky
             foreach (var node in inOrderInspection)
@@ -196,10 +168,10 @@ namespace Structures.Trees.KDTree
             return result;
         }
         
-        public void DeleteNode(IEnumerable<TKey> keys)
+        public override void Remove(IEnumerable<TKey> keys)
         {
             if (Root == null) return;
-            if (!TryFindKDTNodes(keys, out var candidates))
+            if (!TryFindKdtNodes(keys, out var candidates))
             {
                 Console.WriteLine("Node with given keys doesn't exist.");
                 return;
@@ -220,16 +192,11 @@ namespace Structures.Trees.KDTree
             }
             
             var nodeToReplace = candidates[index];
-            var toReadd = new Stack<KDTNode<TKey, TValue>>();
-            var toDelete = new Stack<KDTNode<TKey, TValue>>();
+            // var toReadd = new Stack<KDTNode<TKey, TValue>>();
+            // var toDelete = new Stack<KDTNode<TKey, TValue>>();
             
-            while (nodeToReplace != null || toDelete.Count > 1)
+            while (nodeToReplace != null)
             {
-                if (nodeToReplace == null)
-                {
-                    nodeToReplace = toDelete.Pop();
-                    toReadd.Push(new KDTNode<TKey, TValue>(nodeToReplace));
-                }
                 if (nodeToReplace.IsLeaf)
                 {
                     if (nodeToReplace.HasParent)
@@ -253,7 +220,7 @@ namespace Structures.Trees.KDTree
                     List<KDTNode<TKey, TValue>> replacementCandidates;
                     if (nodeToReplace.LeftChild != null) // najdi in order predchodcu
                     {
-                        replacementCandidates = FindInOrder(nodeToReplace, InOrderType.Previous);
+                        replacementCandidates = FindMaximum(nodeToReplace, Side.Left);
                         // pokial je možne tak za kandidáta zvilíme list, inak prvého nájdeného
                         KDTNode<TKey, TValue> theChosenOne = null;
                         foreach (var cand in replacementCandidates.Where(cand => cand.IsLeaf))
@@ -267,34 +234,24 @@ namespace Structures.Trees.KDTree
                     }
                     else // najdi in order nasledovnika
                     {
-                        replacementCandidates = FindInOrder(nodeToReplace, InOrderType.Next);
+                        replacementCandidates = FindMaximum(nodeToReplace, Side.Right);
                         // TODO LIFO ich odstraniť a znovu pridať
-                        if (replacementCandidates.Count > 1)
+                        var theChosenOne = replacementCandidates[0];
+                        AssignNodes(ref nodeToReplace,ref  theChosenOne);
+                        if (nodeToReplace.LeftChild == null)
                         {
-                            for (int i = replacementCandidates.Count - 1; i >= 0; i--)
-                            {
-                                if (i == replacementCandidates.Count - 1) continue;
-                                toDelete.Push(replacementCandidates[i]);
-                            }
-
-                                    var theChosenOne = replacementCandidates[replacementCandidates.Count - 1];
-                                    AssignNodes(ref nodeToReplace,ref  theChosenOne);
-                                    nodeToReplace = theChosenOne;
+                            nodeToReplace.LeftChild = nodeToReplace.RightChild;
+                            nodeToReplace.RightChild = null;
                         }
-                        else
-                        {
-                            var theChosenOne = replacementCandidates[0];
-                            AssignNodes(ref nodeToReplace,ref  theChosenOne);
-                            nodeToReplace = theChosenOne;
-                        }
+                        nodeToReplace = theChosenOne;
                     }
                 }
             }
 
-            foreach (var node in toReadd)
-            {
-                Add(node.Keys, node.Data);
-            }
+            // foreach (var node in toReadd)
+            // {
+            //     Add(node.Keys, node.Data);
+            // }
             // Console.WriteLine($"Nodes successfully replaced");
         }
 
@@ -307,7 +264,7 @@ namespace Structures.Trees.KDTree
         }
         public IEnumerator<KDTNode<TKey, TValue>> GetEnumerator()
         {
-            return new KDTEnumerator<TKey, TValue>(Root);
+            return new KDTEnumerator<TKey, TValue>(Root, Inspection.LevelOrder);
         }
     }
 }

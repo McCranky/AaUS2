@@ -5,17 +5,35 @@ using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
+    public enum Inspection
+    {
+        InOrder,
+        LevelOrder
+    }
     public class KDTEnumerator<TKey, TValue> : IEnumerator<KDTNode<TKey, TValue>> where TKey : IComparable
     {
         private Queue<KDTNode<TKey, TValue>> _path;
         private KDTNode<TKey, TValue> _root;
         private KDTNode<TKey, TValue> _current;
+        private readonly Inspection _type;
         
-        public KDTEnumerator(KDTNode<TKey, TValue> root)
+        public KDTEnumerator(KDTNode<TKey, TValue> root, Inspection type)
         {
             _root = root;
             _path = new Queue<KDTNode<TKey, TValue>>();
-            PopulatePath();
+            _type = type;
+            switch (_type)
+            {
+                case Inspection.InOrder:
+                    InOrderInspection();
+                    break;
+                case Inspection.LevelOrder:
+                    LevelOrderInspection();
+                    break;
+                default:
+                    InOrderInspection();
+                    break;
+            }
         }
 
         public bool MoveNext()
@@ -31,7 +49,18 @@ namespace Structures.Trees.KDTree
 
         public void Reset()
         {
-            PopulatePath();
+            switch (_type)
+            {
+                case Inspection.InOrder:
+                    InOrderInspection();
+                    break;
+                case Inspection.LevelOrder:
+                    LevelOrderInspection();
+                    break;
+                default:
+                    InOrderInspection();
+                    break;
+            }
         }
 
         public KDTNode<TKey, TValue> Current
@@ -49,7 +78,7 @@ namespace Structures.Trees.KDTree
             _path.Clear();
         }
 
-        private void PopulatePath()
+        private void InOrderInspection()
         {
             var toProcess = new Stack<KDTNode<TKey, TValue>>();
             var current = _root;
@@ -65,6 +94,23 @@ namespace Structures.Trees.KDTree
                 var popped = toProcess.Pop();
                 _path.Enqueue(popped);
                 current = popped.RightChild;
+            }
+        }
+
+        private void LevelOrderInspection()
+        {
+            var toProcess = new Queue<KDTNode<TKey, TValue>>();
+            toProcess.Enqueue(_root);
+
+            while (toProcess.Count > 0)
+            {
+                var current = toProcess.Dequeue();
+                if (current != null)
+                {
+                    _path.Enqueue(current);
+                    toProcess.Enqueue(current.LeftChild);
+                    toProcess.Enqueue(current.RightChild);
+                }
             }
         }
     }
