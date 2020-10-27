@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Structures", "Structures\St
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructureTestingApp", "StructureTestingApp\StructureTestingApp.csproj", "{205A3C3E-A6FE-45A7-BD95-96CFB17FB8ED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoLocApi", "GeoLocApi\GeoLocApi.csproj", "{F4BFEB13-F836-4560-A316-6691D1781AF2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{205A3C3E-A6FE-45A7-BD95-96CFB17FB8ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{205A3C3E-A6FE-45A7-BD95-96CFB17FB8ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{205A3C3E-A6FE-45A7-BD95-96CFB17FB8ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4BFEB13-F836-4560-A316-6691D1781AF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4BFEB13-F836-4560-A316-6691D1781AF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4BFEB13-F836-4560-A316-6691D1781AF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4BFEB13-F836-4560-A316-6691D1781AF2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
