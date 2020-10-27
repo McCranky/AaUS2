@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using Structures.Common;
-using Structures.Trees.Tree;
 
 namespace Structures.Trees.KDTree
 {
     public class KDTNode<TKey, TValue> : ValueItem<TValue> where TKey : IComparable
     {
-        public Guid PrimaryKey { get; set; } = Guid.NewGuid();
-        public int Level { get; set; }
         public List<TKey> Keys { get; set; }
         public KDTNode<TKey, TValue> Parent { get; set; }
         public KDTNode<TKey, TValue> LeftChild { get; set; }
         public KDTNode<TKey, TValue> RightChild { get; set; }
+        public Guid PrimaryKey { get; set; } = Guid.NewGuid();
+        public int Level { get; set; }
 
         public KDTNode(List<TKey> keys, TValue value) : base(value)
         {

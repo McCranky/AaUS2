@@ -13,7 +13,7 @@ namespace StructureTestingApp
         public bool Exit { get; set; }
         public Random Generator { get; set; }
         private int _keyCount;
-        private List<IComparable[]> _insertedKeys;
+        private LinkedList<IComparable[]> _insertedKeys;
         private KDTree<IComparable, string> _tree;
         public void Start()
         {
@@ -46,7 +46,7 @@ namespace StructureTestingApp
             Generator = new Random(seed);
             Console.WriteLine("Tree and support check list created.");
             _tree = new KDTree<IComparable, string>(_keyCount);
-            _insertedKeys = new List<IComparable[]>();
+            _insertedKeys = new LinkedList<IComparable[]>();
             do
             {
                 Console.WriteLine();
@@ -97,9 +97,11 @@ namespace StructureTestingApp
                     {
                         Console.Write("Number of records to delete: ");
                         var deleteCount = int.Parse(Console.ReadLine() ?? $"{TreeCount}") % (TreeCount + 1);
+                        // kvôli náhodnosti prehádžeme zoznam
+                        _insertedKeys = new LinkedList<IComparable[]>(_insertedKeys.OrderBy(o => Generator.Next()));
                         for (int i = 0; i < deleteCount; i++)
                         {
-                            var toRemove = _insertedKeys[i];
+                            var toRemove = _insertedKeys.First.Value;
                             _tree.Remove(toRemove);
                             _insertedKeys.Remove(toRemove);
                         }
@@ -143,7 +145,7 @@ namespace StructureTestingApp
 
                         Console.Write("Data: ");
                         var data = Console.ReadLine();
-                        _insertedKeys.Add(insertKeys.ToArray());
+                        _insertedKeys.AddLast(insertKeys.ToArray());
                         _tree.Add(insertKeys, data);
                     }
                     else
@@ -157,7 +159,7 @@ namespace StructureTestingApp
                             {
                                 keys.Add(Generator.Next());
                             }
-                            _insertedKeys.Add(keys.ToArray());
+                            _insertedKeys.AddLast(keys.ToArray());
                             _tree.Add(keys, i.ToString());
                         }
                     }

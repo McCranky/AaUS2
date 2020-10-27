@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Structures.Common
+﻿namespace Structures.Common
 {
     /// <summary>
     /// Prvok uchvávajúci dáta
@@ -30,16 +28,5 @@ namespace Structures.Common
         {
             Data = other.Data;
         }
-    }
-
-    public abstract class KeyItem<T> where T : IComparable
-    {
-
-    }
-
-    public class Structure
-    {
-        public virtual bool IsEmpty() => false;
-        public virtual int Size() => 0;
     }
 }
