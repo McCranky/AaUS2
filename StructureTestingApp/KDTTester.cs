@@ -78,7 +78,7 @@ namespace StructureTestingApp
                             Console.Write($"Key {i + 1}: ");
                             deleteKeys.Add(int.Parse(Console.ReadLine()!));
                         }
-                        _tree.Remove(deleteKeys);
+                        _tree.Remove(deleteKeys, Guid.Empty);
                         IComparable[] listItem = null;
                         foreach (var keyPair in _insertedKeys)
                         {
@@ -102,7 +102,7 @@ namespace StructureTestingApp
                         for (int i = 0; i < deleteCount; i++)
                         {
                             var toRemove = _insertedKeys.First.Value;
-                            _tree.Remove(toRemove);
+                            _tree.Remove(toRemove, Guid.Empty);
                             _insertedKeys.Remove(toRemove);
                         }
                     }
