@@ -24,7 +24,7 @@ namespace Structures.Trees.KDTree
             KeyCount = keyCount;
         }
 
-        public override void Add(IEnumerable<TKey> keys, TValue value)
+        public override Guid Add(IEnumerable<TKey> keys, TValue value)
         {
             var keyList = keys.ToList();
             var newNode = new KDTNode<TKey, TValue>(keyList, value);
@@ -57,9 +57,10 @@ namespace Structures.Trees.KDTree
                     }
                 }
             }
+            return newNode.PrimaryKey;
         }
         
-        public override void Remove(IEnumerable<TKey> keys)
+        public override void Remove(IEnumerable<TKey> keys, Guid id)
         {
             if (Root == null) return;
             if (!TryFindKdtNodes(keys, out var candidates))
@@ -69,17 +70,16 @@ namespace Structures.Trees.KDTree
             }
 
             var index = 0;
-            // vyber konkretnej nody pre mazanie
-            if (candidates.Count > 1)
+            // vyber konkretnej nody pre mazanie ak je poskytnute id
+            if (candidates.Count > 1 && id != Guid.Empty)
             {
-                // TODO for user decision purposes
-                // Console.WriteLine("Multiple matches found. Choose one to delete:");
-                // for (int i = 0; i < candidates.Count; i++)
-                // {
-                //     Console.WriteLine($"Option[{i}] ID:{candidates[i].PrimaryKey} Data: {candidates[i].Data.ToString()}");
-                // }
-                // Console.Write($"Delete: ");
-                // index = int.Parse(Console.ReadLine() ?? "0");
+                for (int i = 0; i < candidates.Count; i++)
+                {
+                    if (candidates[i].PrimaryKey == id)
+                    {
+                        index = i;
+                    }
+                }
             }
             
             var nodeToReplace = candidates[index];
@@ -139,9 +139,27 @@ namespace Structures.Trees.KDTree
 
         public bool TryFindKdtNodes(IEnumerable<TKey> keys, out List<KDTNode<TKey, TValue>> values)
         {
-            var point = keys as TKey[] ?? keys.ToArray();
-            values = FindInRange(point, point);
-            return values.Count > 0;
+            values = FindKdtNodes(keys);
+            return values != null && values.Count > 0;
+        }
+
+        public bool TryFindKdtNode(IEnumerable<TKey> keys, Guid id, out KDTNode<TKey, TValue> node)
+        {
+            node = FindKdtNode(keys, id);
+            return node != null;
+        }
+
+        public KDTNode<TKey, TValue> FindKdtNode(IEnumerable<TKey> keys, Guid id)
+        {
+            var pointFrom = keys as TKey[] ?? keys.ToArray();
+            var nodes = FindInRange(pointFrom, pointFrom);
+            return nodes.FirstOrDefault(node => node.PrimaryKey == id);
+        }
+        
+        public List<KDTNode<TKey, TValue>> FindKdtNodes(IEnumerable<TKey> keys)
+        {
+            var pointFrom = keys as TKey[] ?? keys.ToArray();
+            return FindInRange(pointFrom, pointFrom);
         }
 
         public List<KDTNode<TKey, TValue>> FindInRange(IEnumerable<TKey> pointFrom, IEnumerable<TKey> pointTo)
