@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GeoLocApi.Data;
 using GeoLocApi.Models;
 using GeoLocApi.Models.Requests;
 using GeoLocApi.Models.Responses;
+using GeoLocApi.Utils;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GeoLocApi.Controllers
@@ -19,11 +22,21 @@ namespace GeoLocApi.Controllers
         }
 
         [HttpGet("plots")]
-        public IActionResult GetAll()
+        public IActionResult GetAll([FromQuery] PaginationFilter filter)
         {
+            // var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
+            var plots = _dataContext.GetPlots();
+            var pagedData = plots
+                .OrderBy(plot => plot.Number)
+                .Skip((filter.PageNumber - 1)* filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
             return Ok(
-                _dataContext.GetPlots()
-                    .OrderBy(plot => plot.Number));
+                new PagedResponse<List<PlotModel>>(pagedData, filter.PageNumber, filter.PageSize)
+                {
+                    TotalRecords = plots.Count,
+                    TotalPages = (int)Math.Ceiling((double)plots.Count / filter.PageSize)
+                });
         }
         
         [HttpGet("plots/{fromLat}/{fromLon}/{toLat}/{toLon}")]

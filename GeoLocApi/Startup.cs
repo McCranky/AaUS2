@@ -28,34 +28,28 @@ namespace GeoLocApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddCors(options =>
-            {
-                options.AddPolicy(name: AllowedOrigins,
-                    builder =>
-                    {
-                        builder.WithOrigins("http://localhost:3000");
-                    });
-            });
             services.AddSingleton<GeoLocatorStorage>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseCors(config =>
+            {
+                config.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
-
             app.UseHttpsRedirection();
-
             app.UseRouting();
-
-            app.UseCors();
-            
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints => { endpoints.MapControllers().RequireCors(AllowedOrigins); });
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }
