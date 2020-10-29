@@ -150,12 +150,17 @@ namespace GeoLocApi.Data
             var keys = new[] {propertyModel.Gps.Latitude, propertyModel.Gps.Longtitude};
             if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
             {
+                var plots = plotNodes.Select(node => node.Data).ToList();
                 var property = new Property(
                     propertyModel.RegisterNumber, 
                     propertyModel.Description, 
                     propertyModel.Gps,
-                    plotNodes.Select(node => node.Data).ToList());
+                    plots);
                 propertyModel.Id = _propertyTree.Add(keys, property);
+                foreach (var plot in plots)
+                {
+                    plot.AddProperty(property);
+                }
                 return true;
             }
             return false;
@@ -167,75 +172,77 @@ namespace GeoLocApi.Data
             var properties = _propertyTree.FindInRange(keys, keys).Select(node => node.Data).ToList();
             var plot = new Plot(plotModel.Number, plotModel.Description, plotModel.Gps, properties);
             plotModel.Id = _plotTree.Add(keys, plot);
+            foreach (var prop in properties)
+            {
+                prop.AddPlot(plot);
+            }
             return true;
         }
 
         public bool ModifyPlot(PlotModel oldPlot, PlotModel newPlot)
         {
             var keys = new[] {oldPlot.Gps.Latitude, oldPlot.Gps.Longtitude};
-            if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
+            if (_plotTree.TryFindKdtNode(keys, oldPlot.Id, out var plotNode))
             {
-                // vyber konkretnej nody podla id
-                Plot plot = null; 
-                foreach (var node in plotNodes)
+                var plot = plotNode.Data;
+                if (plot.Gps != newPlot.Gps) // zmenila sa gps
                 {
-                    if (node.PrimaryKey == oldPlot.Id)
+                    // musime odobrať pozemok všetkym nehnutelnostiam ku ktorym je viazany
+                    if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
                     {
-                        plot = node.Data;
-                        break;
-                    }
-                }
-                
-                // konrola pre istotu
-                if (plot != null)
-                {
-                    if (plot.Gps != newPlot.Gps) // zmenila sa gps
-                    {
-                        // musime odobrať pozemok všetkym nehnutelnostiam ku ktorym je viazany
-                        if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
+                        // var props = propNodes.Select(prop => prop.Data);
+                        var propsToRemove = new List<KDTNode<double, Property>>();
+                        foreach (var propNode in propNodes)
                         {
-                            var props = propNodes.Select(prop => prop.Data);
-                            foreach (var prop in props)
+                            propNode.Data.RemovePlot(plot);
+                            // ak nehnutelnosti neostal pozemok, na ktorom by stala, tak ju musime zmazať
+                            if (propNode.Data.Plots.Count <= 0)
                             {
-                                prop.RemovePlot(plot);
+                                propsToRemove.Add(propNode);
                             }
-                        }
-                        // teraz zmažeme samotny plot zo stromu
-                        _plotTree.Remove(keys, oldPlot.Id);
-                        // vytvoríme ho na novej pozicii
-                        keys = new[] {newPlot.Gps.Latitude, newPlot.Gps.Longtitude};
-                        newPlot.Id = _plotTree.Add(keys, plot);
-                        plot.Gps = newPlot.Gps;
-                        // priradime všetkym nehnutelnostiam, ak take su
-                        if (_propertyTree.TryFindKdtNodes(keys, out propNodes))
-                        {
-                            var props = propNodes.Select(prop => prop.Data);
-                            foreach (var prop in props)
+
+                            foreach (var propToRemove in propsToRemove)
                             {
-                                prop.AddPlot(plot);
+                                _propertyTree.Remove(propToRemove.Keys, propToRemove.PrimaryKey);
                             }
                         }
                     }
-                    plot.Description = newPlot.Description;
-                    plot.Number = newPlot.Number;
-                    return true;
+                    // teraz zmažeme samotny plot zo stromu
+                    _plotTree.Remove(keys, oldPlot.Id);
+                    // vytvoríme ho na novej pozicii
+                    keys = new[] {newPlot.Gps.Latitude, newPlot.Gps.Longtitude};
+                    newPlot.Id = _plotTree.Add(keys, plot);
+                    plot.Gps = newPlot.Gps;
+                    // priradime všetkym nehnutelnostiam, ak take su
+                    if (_propertyTree.TryFindKdtNodes(keys, out propNodes))
+                    {
+                        var props = propNodes.Select(prop => prop.Data);
+                        foreach (var prop in props)
+                        {
+                            prop.AddPlot(plot);
+                        }
+                    }
                 }
+                plot.Description = newPlot.Description;
+                plot.Number = newPlot.Number;
+                return true;
             }
             return false;
         }
         
         public bool ModifyProperty(PropertyModel oldProp, PropertyModel newProp)  
         {
-            var keys = new[] {oldProp.Gps.Latitude, oldProp.Gps.Longtitude};
-            if (_propertyTree.TryFindKdtNode(keys, oldProp.Id, out var propNode))
+            var oldKeys = new[] {oldProp.Gps.Latitude, oldProp.Gps.Longtitude};
+            if (_propertyTree.TryFindKdtNode(oldKeys, oldProp.Id, out var propNode))
             {
                 var prop = propNode.Data;
                 if (prop.Gps != newProp.Gps) // zmenila sa gps
                 {
-                    if (_plotTree.TryFindKdtNodes(keys, out var newPlotNodes)) // kontrola či máme nehnutelnosť kam umiestniť
+                    var newKeys = new[] {newProp.Gps.Latitude, newProp.Gps.Longtitude};
+                    if (_plotTree.TryFindKdtNodes(newKeys, out var newPlotNodes)) // kontrola či máme nehnutelnosť kam umiestniť
                     {
                         // musime odobrať nehnutelnosť všetkym pozemkom ku ktorym je viazany
-                        if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
+                        if (_plotTree.TryFindKdtNodes(oldKeys, out var plotNodes))
                         {
                             var plots = plotNodes.Select(plot => plot.Data);
                             foreach (var plot in plots)
@@ -244,10 +251,9 @@ namespace GeoLocApi.Data
                             }
                         }
                         // teraz zmažeme samotnu nehnutelnost zo stromu
-                        _propertyTree.Remove(keys, oldProp.Id);
+                        _propertyTree.Remove(oldKeys, oldProp.Id);
                         // vytvoríme ju na novej pozicii
-                        keys = new[] {newProp.Gps.Latitude, newProp.Gps.Longtitude};
-                        newProp.Id = _propertyTree.Add(keys, prop);
+                        newProp.Id = _propertyTree.Add(newKeys, prop);
                         prop.Gps = newProp.Gps;
                         // priradime všetkym pozemkom
                         var plotsToAssign = newPlotNodes.Select(plot => plot.Data);
@@ -276,10 +282,19 @@ namespace GeoLocApi.Data
             {
                 if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
                 {
-                    var props = propNodes.Select(prop => prop.Data);
-                    foreach (var prop in props)
+                    var propsToRemove = new List<KDTNode<double, Property>>();
+                    foreach (var propNode in propNodes)
                     {
-                        prop.RemovePlot(plot.Data);
+                        propNode.Data.RemovePlot(plot.Data);
+                        if (propNode.Data.Plots.Count <= 0)
+                        {
+                            propsToRemove.Add(propNode);
+                        }
+                    }
+
+                    foreach (var prop in propsToRemove)
+                    {
+                        _propertyTree.Remove(prop.Keys, prop.PrimaryKey);
                     }
                 }
                 _plotTree.Remove(keys, plot.PrimaryKey);   
