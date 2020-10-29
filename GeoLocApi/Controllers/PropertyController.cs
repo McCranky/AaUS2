@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using GeoLocApi.Data;
 using GeoLocApi.Data.Components;
 using GeoLocApi.Models;
@@ -59,6 +60,42 @@ namespace GeoLocApi.Controllers
             }
 
             return BadRequest("There are no plot to assign to.");
+        }
+
+        [HttpDelete("properties/{id}/{lat}/{lon}")]
+        public IActionResult Delete([FromRoute] Guid id, double lat, double lon)
+        {
+            if (_dataContext.RemoveProperty(id, lat, lon))
+            {
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+
+        [HttpPut("properties")]
+        public IActionResult Update([FromBody] UpdatePropertyRequest fromProp, [FromBody] UpdatePropertyRequest toProp)
+        {
+            var oldProp = new PropertyModel()
+            {
+                Description = fromProp.Description,
+                Gps = fromProp.Gps,
+                Id = fromProp.Id,
+                RegisterNumber = fromProp.RegisterNumber
+            };
+            
+            var newProp = new PropertyModel()
+            {
+                Description = toProp.Description,
+                Gps = toProp.Gps,
+                RegisterNumber = toProp.RegisterNumber
+            };
+            if (_dataContext.ModifyProperty(oldProp, newProp))
+            {
+                return Ok(newProp);
+            }
+
+            return NotFound();
         }
     }
 }

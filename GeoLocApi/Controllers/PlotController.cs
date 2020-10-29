@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using GeoLocApi.Data;
 using GeoLocApi.Models;
@@ -57,6 +58,42 @@ namespace GeoLocApi.Controllers
                 return Created(locationUri, response);
             }
             return BadRequest("Something went wrong, contact developers.");
+        }
+        
+        [HttpDelete("plots/{id}/{lat}/{lon}")]
+        public IActionResult Delete([FromRoute] Guid id, double lat, double lon)
+        {
+            if (_dataContext.RemovePlot(id, lat, lon))
+            {
+                return NoContent();
+            }
+
+            return NotFound();
+        }
+        
+        [HttpPut("plots")]
+        public IActionResult Update([FromBody] UpdatePlotRequest fromPlot, [FromBody] UpdatePlotRequest toPlot)
+        {
+            var oldPlot = new PlotModel()
+            {
+                Description = fromPlot.Description,
+                Gps = fromPlot.Gps,
+                Id = fromPlot.Id,
+                Number = fromPlot.Number
+            };
+            
+            var newPlot = new PlotModel()
+            {
+                Description = toPlot.Description,
+                Gps = toPlot.Gps,
+                Number = toPlot.Number
+            };
+            if (_dataContext.ModifyPlot(oldPlot, newPlot))
+            {
+                return Ok(newPlot);
+            }
+
+            return NotFound();
         }
     }
 }

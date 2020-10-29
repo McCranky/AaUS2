@@ -216,11 +216,14 @@ namespace GeoLocApi.Data
                     // priradime všetkym nehnutelnostiam, ak take su
                     if (_propertyTree.TryFindKdtNodes(keys, out propNodes))
                     {
-                        var props = propNodes.Select(prop => prop.Data);
+                        var props = propNodes.Select(prop => prop.Data).ToList();
                         foreach (var prop in props)
                         {
                             prop.AddPlot(plot);
+                            plot.AddProperty(prop);
                         }
+
+                        newPlot.Properties = props.Select(prop => prop.Description).ToList();
                     }
                 }
                 plot.Description = newPlot.Description;
@@ -256,11 +259,14 @@ namespace GeoLocApi.Data
                         newProp.Id = _propertyTree.Add(newKeys, prop);
                         prop.Gps = newProp.Gps;
                         // priradime všetkym pozemkom
-                        var plotsToAssign = newPlotNodes.Select(plot => plot.Data);
+                        var plotsToAssign = newPlotNodes.Select(plot => plot.Data).ToList();
                         foreach (var plot in plotsToAssign)
                         {
                             plot.AddProperty(prop);
+                            prop.AddPlot(plot);
                         }
+
+                        newProp.Plots = plotsToAssign.Select(plot => plot.Description).ToList();
                     }
                     else
                     {
@@ -275,10 +281,10 @@ namespace GeoLocApi.Data
             return false;
         }
 
-        public void RemovePlot(PlotModel plotModel)
+        public bool RemovePlot(Guid id, double latitude, double longtitude)
         {
-            var keys = new[] {plotModel.Gps.Latitude, plotModel.Gps.Longtitude};
-            if (_plotTree.TryFindKdtNode(keys, plotModel.Id, out var plot))
+            var keys = new[] {latitude, longtitude};
+            if (_plotTree.TryFindKdtNode(keys, id, out var plot))
             {
                 if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
                 {
@@ -297,14 +303,17 @@ namespace GeoLocApi.Data
                         _propertyTree.Remove(prop.Keys, prop.PrimaryKey);
                     }
                 }
-                _plotTree.Remove(keys, plot.PrimaryKey);   
+                _plotTree.Remove(keys, plot.PrimaryKey);
+                return true;
             }
+
+            return false;
         }
         
-        public void RemoveProperty(PropertyModel propertyModel)
+        public bool RemoveProperty(Guid id, double latitude, double longtitude)
         {
-            var keys = new[] {propertyModel.Gps.Latitude, propertyModel.Gps.Longtitude};
-            if (_propertyTree.TryFindKdtNode(keys, propertyModel.Id, out var property))
+            var keys = new[] {latitude, longtitude};
+            if (_propertyTree.TryFindKdtNode(keys, id, out var property))
             {
                 if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
                 {
@@ -314,8 +323,11 @@ namespace GeoLocApi.Data
                         plot.RemoveProperty(property.Data);
                     }
                 }
-                _propertyTree.Remove(keys, property.PrimaryKey);   
+                _propertyTree.Remove(keys, property.PrimaryKey);
+                return true;
             }
+
+            return false;
         }
     }
 }
