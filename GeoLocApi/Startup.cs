@@ -23,7 +23,6 @@ namespace GeoLocApi
 
         public IConfiguration Configuration { get; }
 
-        private readonly string AllowedOrigins = "_allowedOrigins";
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
