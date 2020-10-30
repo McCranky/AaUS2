@@ -11,7 +11,7 @@ namespace GeoLocApi.Controllers
 {
     public class PropertyController : Controller
     {
-        private GeoLocatorStorage _dataContext;
+        private readonly GeoLocatorStorage _dataContext;
 
         public PropertyController(GeoLocatorStorage dataContext)
         {
@@ -49,21 +49,18 @@ namespace GeoLocApi.Controllers
                 Gps = propertyRequest.Gps,
                 RegisterNumber = propertyRequest.RegisterNumber
             };
-            
-            if (_dataContext.AddProperty(property))
-            {
-                var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
-                var locationUri = baseUrl + "/properties/" + property.Id.ToString();
 
-                var response = new PropertyResponse() { Id = property.Id };
-                return Created(locationUri, response);
-            }
+            if (!_dataContext.AddProperty(property)) return BadRequest("Something went wrong, contact developers.");
+            var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
+            var locationUri = baseUrl + "/properties/" + property.Id.ToString();
 
-            return BadRequest("There are no plot to assign to.");
+            var response = new PropertyResponse() { Id = property.Id };
+            return Created(locationUri, response);
+
         }
 
         [HttpDelete("properties/{id}/{lat}/{lon}")]
-        public IActionResult Delete([FromRoute] Guid id, double lat, double lon)
+        public IActionResult Delete([FromRoute] Guid id, [FromRoute] double lat, [FromRoute] double lon)
         {
             if (_dataContext.RemoveProperty(id, lat, lon))
             {
@@ -74,23 +71,15 @@ namespace GeoLocApi.Controllers
         }
 
         [HttpPut("properties")]
-        public IActionResult Update([FromBody] UpdatePropertyRequest fromProp, [FromBody] UpdatePropertyRequest toProp)
+        public IActionResult Update([FromBody] UpdatePropertyRequest propertyRequest)
         {
-            var oldProp = new PropertyModel()
-            {
-                Description = fromProp.Description,
-                Gps = fromProp.Gps,
-                Id = fromProp.Id,
-                RegisterNumber = fromProp.RegisterNumber
-            };
-            
             var newProp = new PropertyModel()
             {
-                Description = toProp.Description,
-                Gps = toProp.Gps,
-                RegisterNumber = toProp.RegisterNumber
+                Description = propertyRequest.Property.Description,
+                Gps = propertyRequest.Property.Gps,
+                RegisterNumber = propertyRequest.Property.RegisterNumber
             };
-            if (_dataContext.ModifyProperty(oldProp, newProp))
+            if (_dataContext.ModifyProperty(propertyRequest.Id, propertyRequest.Latitude, propertyRequest.Longtitude, newProp))
             {
                 return Ok(newProp);
             }

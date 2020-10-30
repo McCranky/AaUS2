@@ -8,9 +8,5 @@
       <ProjectReference Include="..\Structures\Structures.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Models\StorageModels" />
-    </ItemGroup>
-
 
 </Project>

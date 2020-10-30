@@ -10,12 +10,13 @@
     
     public class GPS
     {
-        public CardinalDirections LatitudeSymbol { get; set; }
-        public CardinalDirections LongtitudeSymbol { get; set; } 
+        public char LatitudeSymbol { get; set; }
+        public char LongtitudeSymbol { get; set; } 
         public double Latitude { get; set; }
         public double Longtitude { get; set; }
         
-        public GPS(CardinalDirections latitudeSymbol, double latitude, CardinalDirections longtitudeSymbol, double longtitude)
+        public GPS(){}
+        public GPS(char latitudeSymbol, double latitude, char longtitudeSymbol, double longtitude)
         {
             Latitude = latitude;
             Longtitude = longtitude;

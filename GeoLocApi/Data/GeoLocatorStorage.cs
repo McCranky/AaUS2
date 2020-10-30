@@ -9,13 +9,13 @@ namespace GeoLocApi.Data
 {
     public class GeoLocatorStorage
     {
-        private KDTree<double, Plot> _plotTree { get; set; }
-        private KDTree<double, Property> _propertyTree { get; set; }
+        private KDTree<double, Plot> PlotTree { get; set; }
+        private KDTree<double, Property> PropertyTree { get; set; }
         
         public GeoLocatorStorage()
         {
-            _plotTree = new KDTree<double, Plot>(2);
-            _propertyTree = new KDTree<double, Property>(2);
+            PlotTree = new KDTree<double, Plot>(2);
+            PropertyTree = new KDTree<double, Property>(2);
             SeedData();
         }
 
@@ -28,34 +28,32 @@ namespace GeoLocApi.Data
                 var pos = new double[]{rnd.Next() % 50, rnd.Next() % 50};
                 positions.Add(pos);
                 
-                var gps = new GPS((CardinalDirections)rnd.Next(0,1), pos[0], (CardinalDirections)rnd.Next(2,3), pos[1]);
+                var gps = new GPS('N', pos[0], 'W', pos[1]);
                 var plot = new Plot(i, $"Desc of plot {i}", gps);
-                _plotTree.Add(pos, plot);
+                PlotTree.Add(pos, plot);
             }
 
-            for (int i = 0; i < 250; i++)
+            for (var i = 0; i < 250; i++)
             {
                 var pos = positions[rnd.Next(positions.Count - 1)];
 
-                if (_plotTree.TryFindKdtNodes(pos, out var plotNodes))
+                if (!PlotTree.TryFindKdtNodes(pos, out var plotNodes)) continue;
+                // vytvorenie pozemku
+                var plots = plotNodes.Select(node => node.Data).ToList();
+                var gps = plots[0].Gps;
+                var property = new Property(i, $"Desc of property {i}", gps, plots);
+                // priradenie pozemku všetkym parcelám na ktorých stojí
+                foreach (var plot in plots)
                 {
-                    // vytvorenie pozemku
-                    var plots = plotNodes.Select(node => node.Data).ToList();
-                    var gps = plots[0].Gps;
-                    var property = new Property(i, $"Desc of property {i}", gps, plots);
-                    // priradenie pozemku všetkym parcelám na ktorých stojí
-                    foreach (var plot in plots)
-                    {
-                        plot.AddProperty(property);
-                    }
-                    _propertyTree.Add(new []{gps.Latitude, gps.Longtitude}, property);
+                    plot.AddProperty(property);
                 }
+                PropertyTree.Add(new []{gps.Latitude, gps.Longtitude}, property);
             }
         }
 
         public List<PlotModel> GetPlots()
         {
-            return _plotTree
+            return PlotTree
                 .Select(plotNode => new PlotModel()
                 {
                     Id = plotNode.PrimaryKey,
@@ -67,11 +65,11 @@ namespace GeoLocApi.Data
                 .ToList();
         }
 
-        public List<PlotModel> GetPlotsInRange(double fromLat, double fromLon, double toLat, double toLon)
+        public IEnumerable<PlotModel> GetPlotsInRange(double fromLat, double fromLon, double toLat, double toLon)
         {
             var pointFrom = new []{fromLat, fromLon};
             var pointTo = new []{toLat, toLon};
-            return _plotTree.FindInRange(pointFrom, pointTo)
+            return PlotTree.FindInRange(pointFrom, pointTo)
                 .Select(plotNode => new PlotModel()
                 {
                     Id = plotNode.PrimaryKey,
@@ -86,7 +84,7 @@ namespace GeoLocApi.Data
         public List<PlotModel> GetPlotAt(double latitude, double longtitude)
         {
             var pos = new []{latitude, longtitude};
-            var nodes = _plotTree.FindInRange(pos, pos);
+            var nodes = PlotTree.FindInRange(pos, pos);
             return nodes
                 .Select(plotNode => new PlotModel()
                 {
@@ -99,9 +97,9 @@ namespace GeoLocApi.Data
                 .ToList();
         }
         
-        public List<PropertyModel> GetProperties()
+        public IEnumerable<PropertyModel> GetProperties()
         {
-            return _propertyTree
+            return PropertyTree
                 .Select(propertyNode => new PropertyModel()
                 {
                     Id = propertyNode.PrimaryKey,
@@ -113,11 +111,11 @@ namespace GeoLocApi.Data
                 .ToList();
         }
         
-        public List<PropertyModel> GetPropertiesInRange(double fromLat, double fromLon, double toLat, double toLon)
+        public IEnumerable<PropertyModel> GetPropertiesInRange(double fromLat, double fromLon, double toLat, double toLon)
         {
             var pointFrom = new []{fromLat, fromLon};
             var pointTo = new []{toLat, toLon};
-            return _propertyTree.FindInRange(pointFrom, pointTo)
+            return PropertyTree.FindInRange(pointFrom, pointTo)
                 .Select(propertyNode => new PropertyModel()
                 {
                     Id = propertyNode.PrimaryKey,
@@ -132,7 +130,7 @@ namespace GeoLocApi.Data
         public List<PropertyModel> GetPropertyAt(double latitude, double longtitude)
         {
             var pos = new []{latitude, longtitude};
-            var nodes = _propertyTree.FindInRange(pos, pos);
+            var nodes = PropertyTree.FindInRange(pos, pos);
             return nodes
                 .Select(propertyNode => new PropertyModel()
                 {
@@ -148,186 +146,150 @@ namespace GeoLocApi.Data
         public bool AddProperty(PropertyModel propertyModel)
         {
             var keys = new[] {propertyModel.Gps.Latitude, propertyModel.Gps.Longtitude};
-            if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
+            var plots = PlotTree.FindInRange(keys, keys).Select(node => node.Data).ToList();
+            
+            var property = new Property(
+                propertyModel.RegisterNumber, 
+                propertyModel.Description, 
+                propertyModel.Gps,
+                plots);
+            propertyModel.Id = PropertyTree.Add(keys, property);
+
+            foreach (var plot in plots)
             {
-                var plots = plotNodes.Select(node => node.Data).ToList();
-                var property = new Property(
-                    propertyModel.RegisterNumber, 
-                    propertyModel.Description, 
-                    propertyModel.Gps,
-                    plots);
-                propertyModel.Id = _propertyTree.Add(keys, property);
-                foreach (var plot in plots)
-                {
-                    plot.AddProperty(property);
-                }
-                return true;
+                plot.AddProperty(property);
             }
-            return false;
+
+            return true;
         }
 
         public bool AddPlot(PlotModel plotModel)
         {
             var keys = new[] {plotModel.Gps.Latitude, plotModel.Gps.Longtitude};
-            var properties = _propertyTree.FindInRange(keys, keys).Select(node => node.Data).ToList();
+            var properties = PropertyTree.FindInRange(keys, keys).Select(node => node.Data).ToList();
+            
             var plot = new Plot(plotModel.Number, plotModel.Description, plotModel.Gps, properties);
-            plotModel.Id = _plotTree.Add(keys, plot);
+            plotModel.Id = PlotTree.Add(keys, plot);
+            
             foreach (var prop in properties)
             {
                 prop.AddPlot(plot);
             }
+            
             return true;
         }
 
-        public bool ModifyPlot(PlotModel oldPlot, PlotModel newPlot)
+        public bool ModifyPlot(Guid id, double latitude, double longttude, PlotModel newPlot)
         {
-            var keys = new[] {oldPlot.Gps.Latitude, oldPlot.Gps.Longtitude};
-            if (_plotTree.TryFindKdtNode(keys, oldPlot.Id, out var plotNode))
+            var keys = new[] {latitude, longttude};
+            if (!PlotTree.TryFindKdtNode(keys, id, out var plotNode)) return false;
+            var plot = plotNode.Data;
+            if (plot.Gps != newPlot.Gps) // zmenila sa gps
             {
-                var plot = plotNode.Data;
-                if (plot.Gps != newPlot.Gps) // zmenila sa gps
+                // musime odobrať pozemok všetkym nehnutelnostiam ku ktorym je viazany
+                if (PropertyTree.TryFindKdtNodes(keys, out var propNodes))
                 {
-                    // musime odobrať pozemok všetkym nehnutelnostiam ku ktorym je viazany
-                    if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
+                    // var props = propNodes.Select(prop => prop.Data);
+                    var propsToRemove = new List<KDTNode<double, Property>>();
+                    foreach (var propNode in propNodes)
                     {
-                        // var props = propNodes.Select(prop => prop.Data);
-                        var propsToRemove = new List<KDTNode<double, Property>>();
-                        foreach (var propNode in propNodes)
-                        {
-                            propNode.Data.RemovePlot(plot);
-                            // ak nehnutelnosti neostal pozemok, na ktorom by stala, tak ju musime zmazať
-                            if (propNode.Data.Plots.Count <= 0)
-                            {
-                                propsToRemove.Add(propNode);
-                            }
-
-                            foreach (var propToRemove in propsToRemove)
-                            {
-                                _propertyTree.Remove(propToRemove.Keys, propToRemove.PrimaryKey);
-                            }
-                        }
-                    }
-                    // teraz zmažeme samotny plot zo stromu
-                    _plotTree.Remove(keys, oldPlot.Id);
-                    // vytvoríme ho na novej pozicii
-                    keys = new[] {newPlot.Gps.Latitude, newPlot.Gps.Longtitude};
-                    newPlot.Id = _plotTree.Add(keys, plot);
-                    plot.Gps = newPlot.Gps;
-                    // priradime všetkym nehnutelnostiam, ak take su
-                    if (_propertyTree.TryFindKdtNodes(keys, out propNodes))
-                    {
-                        var props = propNodes.Select(prop => prop.Data).ToList();
-                        foreach (var prop in props)
-                        {
-                            prop.AddPlot(plot);
-                            plot.AddProperty(prop);
-                        }
-
-                        newPlot.Properties = props.Select(prop => prop.Description).ToList();
+                        propNode.Data.RemovePlot(plot);
                     }
                 }
-                plot.Description = newPlot.Description;
-                plot.Number = newPlot.Number;
-                return true;
+                // teraz zmažeme samotny plot zo stromu
+                PlotTree.Remove(keys, id);
+                // vytvoríme ho na novej pozicii
+                keys = new[] {newPlot.Gps.Latitude, newPlot.Gps.Longtitude};
+                newPlot.Id = PlotTree.Add(keys, plot);
+                plot.Gps = newPlot.Gps;
+                // priradime všetkym nehnutelnostiam, ak take su
+                if (PropertyTree.TryFindKdtNodes(keys, out propNodes))
+                {
+                    var props = propNodes.Select(prop => prop.Data).ToList();
+                    foreach (var prop in props)
+                    {
+                        prop.AddPlot(plot);
+                        plot.AddProperty(prop);
+                    }
+
+                    newPlot.Properties = props.Select(prop => prop.Description).ToList();
+                }
             }
-            return false;
+            plot.Description = newPlot.Description;
+            plot.Number = newPlot.Number;
+            return true;
         }
         
-        public bool ModifyProperty(PropertyModel oldProp, PropertyModel newProp)  
+        public bool ModifyProperty(Guid id, double latitude, double longtitude, PropertyModel newProp)  
         {
-            var oldKeys = new[] {oldProp.Gps.Latitude, oldProp.Gps.Longtitude};
-            if (_propertyTree.TryFindKdtNode(oldKeys, oldProp.Id, out var propNode))
+            var oldKeys = new[] {latitude, longtitude};
+            if (!PropertyTree.TryFindKdtNode(oldKeys,id, out var propNode)) return false;
+            var prop = propNode.Data;
+            if (prop.Gps != newProp.Gps) // zmenila sa gps
             {
-                var prop = propNode.Data;
-                if (prop.Gps != newProp.Gps) // zmenila sa gps
+                // musime odobrať nehnutelnosť všetkym pozemkom ku ktorym je viazany
+                if (PlotTree.TryFindKdtNodes(oldKeys, out var plotNodes))
                 {
-                    var newKeys = new[] {newProp.Gps.Latitude, newProp.Gps.Longtitude};
-                    if (_plotTree.TryFindKdtNodes(newKeys, out var newPlotNodes)) // kontrola či máme nehnutelnosť kam umiestniť
+                    var plots = plotNodes.Select(plot => plot.Data);
+                    foreach (var plot in plots)
                     {
-                        // musime odobrať nehnutelnosť všetkym pozemkom ku ktorym je viazany
-                        if (_plotTree.TryFindKdtNodes(oldKeys, out var plotNodes))
-                        {
-                            var plots = plotNodes.Select(plot => plot.Data);
-                            foreach (var plot in plots)
-                            {
-                                plot.RemoveProperty(prop);
-                            }
-                        }
-                        // teraz zmažeme samotnu nehnutelnost zo stromu
-                        _propertyTree.Remove(oldKeys, oldProp.Id);
-                        // vytvoríme ju na novej pozicii
-                        newProp.Id = _propertyTree.Add(newKeys, prop);
-                        prop.Gps = newProp.Gps;
-                        // priradime všetkym pozemkom
-                        var plotsToAssign = newPlotNodes.Select(plot => plot.Data).ToList();
-                        foreach (var plot in plotsToAssign)
-                        {
-                            plot.AddProperty(prop);
-                            prop.AddPlot(plot);
-                        }
-
-                        newProp.Plots = plotsToAssign.Select(plot => plot.Description).ToList();
-                    }
-                    else
-                    {
-                        // pre novu poziciu nehnutelnosťi neexistuje pozemok
-                        return false;
+                        plot.RemoveProperty(prop);
                     }
                 }
-                prop.Description = newProp.Description;
-                prop.RegisterNumber = newProp.RegisterNumber;
-                return true;
+                // teraz zmažeme samotnu nehnutelnost zo stromu
+                PropertyTree.Remove(oldKeys, id);
+                // vytvoríme ju na novej pozicii
+                var newKeys = new[] {newProp.Gps.Latitude, newProp.Gps.Longtitude};
+                newProp.Id = PropertyTree.Add(newKeys, prop);
+                prop.Gps = newProp.Gps;
+                    
+                if (PlotTree.TryFindKdtNodes(newKeys, out var newPlotNodes)) // najdenie novych pozemkov
+                {
+                    // priradime všetkym pozemkom
+                    var plotsToAssign = newPlotNodes.Select(plot => plot.Data).ToList();
+                    foreach (var plot in plotsToAssign)
+                    {
+                        plot.AddProperty(prop);
+                        prop.AddPlot(plot);
+                    }
+
+                    newProp.Plots = plotsToAssign.Select(plot => plot.Description).ToList();
+                }
             }
-            return false;
+            prop.Description = newProp.Description;
+            prop.RegisterNumber = newProp.RegisterNumber;
+            return true;
         }
 
         public bool RemovePlot(Guid id, double latitude, double longtitude)
         {
             var keys = new[] {latitude, longtitude};
-            if (_plotTree.TryFindKdtNode(keys, id, out var plot))
+            if (!PlotTree.TryFindKdtNode(keys, id, out var plot)) return false;
+            if (PropertyTree.TryFindKdtNodes(keys, out var propNodes))
             {
-                if (_propertyTree.TryFindKdtNodes(keys, out var propNodes))
+                foreach (var propNode in propNodes)
                 {
-                    var propsToRemove = new List<KDTNode<double, Property>>();
-                    foreach (var propNode in propNodes)
-                    {
-                        propNode.Data.RemovePlot(plot.Data);
-                        if (propNode.Data.Plots.Count <= 0)
-                        {
-                            propsToRemove.Add(propNode);
-                        }
-                    }
-
-                    foreach (var prop in propsToRemove)
-                    {
-                        _propertyTree.Remove(prop.Keys, prop.PrimaryKey);
-                    }
+                    propNode.Data.RemovePlot(plot.Data);
                 }
-                _plotTree.Remove(keys, plot.PrimaryKey);
-                return true;
             }
-
-            return false;
+            PlotTree.Remove(keys, plot.PrimaryKey);
+            return true;
         }
         
         public bool RemoveProperty(Guid id, double latitude, double longtitude)
         {
             var keys = new[] {latitude, longtitude};
-            if (_propertyTree.TryFindKdtNode(keys, id, out var property))
+            if (!PropertyTree.TryFindKdtNode(keys, id, out var property)) return false;
+            if (PlotTree.TryFindKdtNodes(keys, out var plotNodes))
             {
-                if (_plotTree.TryFindKdtNodes(keys, out var plotNodes))
+                var plots = plotNodes.Select(plot => plot.Data);
+                foreach (var plot in plots)
                 {
-                    var plots = plotNodes.Select(plot => plot.Data);
-                    foreach (var plot in plots)
-                    {
-                        plot.RemoveProperty(property.Data);
-                    }
+                    plot.RemoveProperty(property.Data);
                 }
-                _propertyTree.Remove(keys, property.PrimaryKey);
-                return true;
             }
-
-            return false;
+            PropertyTree.Remove(keys, property.PrimaryKey);
+            return true;
         }
     }
 }

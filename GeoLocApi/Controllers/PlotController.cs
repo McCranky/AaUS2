@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using GeoLocApi.Data;
 using GeoLocApi.Models;
 using GeoLocApi.Models.Requests;
 using GeoLocApi.Models.Responses;
 using GeoLocApi.Utils;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GeoLocApi.Controllers
 {
     public class PlotController : Controller
     {
-        private GeoLocatorStorage _dataContext;
+        private readonly GeoLocatorStorage _dataContext;
 
         public PlotController(GeoLocatorStorage dataContext)
         {
@@ -62,19 +60,16 @@ namespace GeoLocApi.Controllers
                 Gps = plotRequest.Gps,
                 Number = plotRequest.Number
             };
-            if (_dataContext.AddPlot(plot))
-            {
-                var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
-                var locationUri = baseUrl + "/properties/" + plot.Id.ToString();
+            if (!_dataContext.AddPlot(plot)) return BadRequest("Something went wrong, contact developers.");
+            var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
+            var locationUri = baseUrl + "/properties/" + plot.Id.ToString();
 
-                var response = new PlotResponse() { Id = plot.Id };
-                return Created(locationUri, response);
-            }
-            return BadRequest("Something went wrong, contact developers.");
+            var response = new PlotResponse() { Id = plot.Id };
+            return Created(locationUri, response);
         }
         
         [HttpDelete("plots/{id}/{lat}/{lon}")]
-        public IActionResult Delete([FromRoute] Guid id, double lat, double lon)
+        public IActionResult Delete([FromRoute] Guid id, [FromRoute] double lat, [FromRoute] double lon)
         {
             if (_dataContext.RemovePlot(id, lat, lon))
             {
@@ -85,23 +80,16 @@ namespace GeoLocApi.Controllers
         }
         
         [HttpPut("plots")]
-        public IActionResult Update([FromBody] UpdatePlotRequest fromPlot, [FromBody] UpdatePlotRequest toPlot)
+        public IActionResult Update([FromBody] UpdatePlotRequest plotRequest)
         {
-            var oldPlot = new PlotModel()
-            {
-                Description = fromPlot.Description,
-                Gps = fromPlot.Gps,
-                Id = fromPlot.Id,
-                Number = fromPlot.Number
-            };
-            
             var newPlot = new PlotModel()
             {
-                Description = toPlot.Description,
-                Gps = toPlot.Gps,
-                Number = toPlot.Number
+                Description = plotRequest.Plot.Description,
+                Gps = plotRequest.Plot.Gps,
+                Number = plotRequest.Plot.Number
             };
-            if (_dataContext.ModifyPlot(oldPlot, newPlot))
+            
+            if (_dataContext.ModifyPlot(plotRequest.Id, plotRequest.Latitude, plotRequest.Longtitude, newPlot))
             {
                 return Ok(newPlot);
             }
