@@ -46,9 +46,20 @@ namespace GeoLocApi.Controllers
         }
 
         [HttpGet("plots/{lat}/{lon}")]
-        public IActionResult Get([FromRoute]double lat, [FromRoute]double lon)
+        public IActionResult Get([FromRoute]double lat, [FromRoute]double lon, [FromQuery] PaginationFilter filter)
         {
-            return Ok(_dataContext.GetPlotAt(lat, lon));
+            var plots = _dataContext.GetPlotAt(lat, lon);
+            var pagedData = plots
+                .OrderBy(plot => plot.Number)
+                .Skip((filter.PageNumber - 1)* filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
+            return Ok(
+                new PagedResponse<List<PlotModel>>(pagedData, filter.PageNumber, filter.PageSize)
+                {
+                    TotalRecords = plots.Count,
+                    TotalPages = (int)Math.Ceiling((double)plots.Count / filter.PageSize)
+                });
         }
 
         [HttpPost("plots")]
@@ -89,7 +100,7 @@ namespace GeoLocApi.Controllers
                 Number = plotRequest.Plot.Number
             };
             
-            if (_dataContext.ModifyPlot(plotRequest.Id, plotRequest.Latitude, plotRequest.Longtitude, newPlot))
+            if (_dataContext.ModifyPlot(plotRequest.Id, plotRequest.Latitude, plotRequest.Longitude, newPlot))
             {
                 return Ok(newPlot);
             }

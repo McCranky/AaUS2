@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using GeoLocApi.Data;
 using GeoLocApi.Data.Components;
 using GeoLocApi.Models;
 using GeoLocApi.Models.Requests;
 using GeoLocApi.Models.Responses;
+using GeoLocApi.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GeoLocApi.Controllers
@@ -19,11 +21,20 @@ namespace GeoLocApi.Controllers
         }
 
         [HttpGet("properties")]
-        public IActionResult Get()
+        public IActionResult GetAll([FromQuery] PaginationFilter filter)
         {
+            var properties = _dataContext.GetProperties();
+            var pagedData = properties
+                .OrderBy(prop => prop.RegisterNumber)
+                .Skip((filter.PageNumber - 1)* filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
             return Ok(
-                _dataContext.GetProperties()
-                    .OrderBy(prop => prop.RegisterNumber));
+                new PagedResponse<List<PropertyModel>>(pagedData, filter.PageNumber, filter.PageSize)
+                {
+                    TotalRecords = properties.Count,
+                    TotalPages = (int)Math.Ceiling((double)properties.Count / filter.PageSize)
+                });
         }
         
         [HttpGet("properties/{fromLat}/{fromLon}/{toLat}/{toLon}")]
@@ -35,9 +46,20 @@ namespace GeoLocApi.Controllers
         }
         
         [HttpGet("properties/{lat}/{lon}")]
-        public IActionResult GetAt([FromRoute]double lat, [FromRoute]double lon)
+        public IActionResult GetAt([FromRoute]double lat, [FromRoute]double lon, [FromQuery] PaginationFilter filter)
         {
-            return Ok(_dataContext.GetPropertyAt(lat, lon));
+            var properties = _dataContext.GetPropertyAt(lat, lon);
+            var pagedData = properties
+                .OrderBy(prop => prop.RegisterNumber)
+                .Skip((filter.PageNumber - 1)* filter.PageSize)
+                .Take(filter.PageSize)
+                .ToList();
+            return Ok(
+                new PagedResponse<List<PropertyModel>>(pagedData, filter.PageNumber, filter.PageSize)
+                {
+                    TotalRecords = properties.Count,
+                    TotalPages = (int)Math.Ceiling((double)properties.Count / filter.PageSize)
+                });
         }
 
         [HttpPost("properties")]
@@ -79,7 +101,7 @@ namespace GeoLocApi.Controllers
                 Gps = propertyRequest.Property.Gps,
                 RegisterNumber = propertyRequest.Property.RegisterNumber
             };
-            if (_dataContext.ModifyProperty(propertyRequest.Id, propertyRequest.Latitude, propertyRequest.Longtitude, newProp))
+            if (_dataContext.ModifyProperty(propertyRequest.Id, propertyRequest.Latitude, propertyRequest.Longitude, newProp))
             {
                 return Ok(newProp);
             }

@@ -11,17 +11,17 @@
     public class GPS
     {
         public char LatitudeSymbol { get; set; }
-        public char LongtitudeSymbol { get; set; } 
+        public char LongitudeSymbol { get; set; } 
         public double Latitude { get; set; }
-        public double Longtitude { get; set; }
+        public double Longitude { get; set; }
         
         public GPS(){}
-        public GPS(char latitudeSymbol, double latitude, char longtitudeSymbol, double longtitude)
+        public GPS(char latitudeSymbol, double latitude, char longitudeSymbol, double longitude)
         {
             Latitude = latitude;
-            Longtitude = longtitude;
+            Longitude = longitude;
             LatitudeSymbol = latitudeSymbol;
-            LongtitudeSymbol = longtitudeSymbol;
+            LongitudeSymbol = longitudeSymbol;
         }
     }
 }
