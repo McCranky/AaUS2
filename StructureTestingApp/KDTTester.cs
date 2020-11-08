@@ -7,11 +7,12 @@ namespace StructureTestingApp
 {
     public class KDTTester
     {
-        public int TreeCount => _tree?.Count ?? 0;
-        public int ListCount => _insertedKeys?.Count ?? 0;
-        public int Input { get; set; }
-        public bool Exit { get; set; }
-        public Random Generator { get; set; }
+        private int _shuffleCounter = 0;
+        private int TreeCount => _tree?.Count ?? 0;
+        private int ListCount => _insertedKeys?.Count ?? 0;
+        private int Input { get; set; }
+        private bool Exit { get; set; }
+        private Random Generator { get; set; }
         private int _keyCount;
         private LinkedList<IComparable[]> _insertedKeys;
         private KDTree<IComparable, string> _tree;
@@ -19,29 +20,14 @@ namespace StructureTestingApp
         {
             Console.WriteLine("---  K-D Tree Tester  ---");
             
-            Console.Write("Number of keys (defaut 2): ");
+            Console.Write("Number of keys (default 2): ");
             var inp = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(inp))
-            {
-                _keyCount = 2;
-            }
-            else
-            {
-                _keyCount = int.Parse(inp);
-            }
+            _keyCount = string.IsNullOrWhiteSpace(inp) ? 2 : int.Parse(inp);
             Console.WriteLine($"Key count = {_keyCount}");
             
             Console.Write("Seed (default is random): ");
             inp = Console.ReadLine();
-            int seed;
-            if (string.IsNullOrWhiteSpace(inp))
-            {
-                seed = Guid.NewGuid().GetHashCode();
-            }
-            else
-            {
-                seed = int.Parse(inp);
-            }
+            var seed = string.IsNullOrWhiteSpace(inp) ? Guid.NewGuid().GetHashCode() : int.Parse(inp);
             Console.WriteLine($"Seed = {seed}");
             Generator = new Random(seed);
             Console.WriteLine("Tree and support check list created.");
@@ -58,112 +44,118 @@ namespace StructureTestingApp
             } while (!Exit);
         }
 
+        private void DoInsert(int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var keys = GenerateKeys(_keyCount);
+                _insertedKeys.AddFirst(keys.ToArray());
+                _tree.Add(keys, i.ToString());
+            }
+            // kvôli náhodnosti mazania a hladanie prehádžeme zoznam
+            if (_shuffleCounter++ % 5000 == 0 && _insertedKeys.Count > 1)
+            {
+                _insertedKeys = new LinkedList<IComparable[]>(_insertedKeys.OrderBy(o => Generator.Next()));
+            }
+        }
+        
+        private void DoDelete(int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                if (_insertedKeys.First == null) continue;
+                var toRemove = _insertedKeys.First.Value;
+                _tree.Remove(toRemove, Guid.Empty);
+                _insertedKeys.Remove(toRemove);
+            }
+        }
+
+        private bool DoFind(IComparable[] keys = null)
+        {
+            if (keys != null)
+            {
+                return _tree.TryFindKdtNodes(keys, out var result);
+            }
+            else
+            {
+                var toFind = _insertedKeys.ElementAt(0);//Generator.Next(_insertedKeys.Count - 1)
+                return _tree.TryFindKdtNodes(toFind, out var result);
+            }
+            
+        }
+        
+        private void DoRandomOperations(int opCount)
+        {
+            var failures = 0;
+            for (var i = 0; i < opCount; i++)
+            {
+                var probability = Generator.NextDouble();
+                if (probability < 0.5) // insert
+                {
+                    try
+                    {
+                        DoInsert(1);
+                    }
+                    catch (Exception e)
+                    {
+                        ++failures;
+                    }
+                }
+                else if (probability < 0.75) // find
+                {
+                    if (ListCount <= 0) continue;
+                    if (!DoFind())
+                        ++failures;
+                }
+                else // delete
+                {
+                    try
+                    {
+                        DoDelete(1);
+                    }
+                    catch (Exception e)
+                    {
+                        ++failures;
+                    }
+                }
+            }
+            Console.WriteLine($"Failures: {failures}");
+        }
+        
         private void HandleInput()
         {
             switch (Input)
             {
-                case 3:
+                case 4:
                     Exit = true;
                     break;
+                case 3: // random operations
+                    Console.Write("Number of operations: ");
+                    var operationsCount = int.Parse(Console.ReadLine()!);
+                    DoRandomOperations(operationsCount);
+                    break;
                 case 2: // Delete
-                    Console.Write("Manual [y/n]: ");
-                    var manual = Console.ReadKey().KeyChar == 'y';
-                    Console.WriteLine();
-                    if (manual)
-                    {
-                        Console.WriteLine($"Specify {_keyCount} keys for deleting node.");
-                        var deleteKeys = new List<IComparable>(_keyCount);
-                        for (int i = 0; i < _keyCount; i++)
-                        {
-                            Console.Write($"Key {i + 1}: ");
-                            deleteKeys.Add(int.Parse(Console.ReadLine()!));
-                        }
-                        _tree.Remove(deleteKeys, Guid.Empty);
-                        IComparable[] listItem = null;
-                        foreach (var keyPair in _insertedKeys)
-                        {
-                            if (keyPair.SequenceEqual(deleteKeys))
-                            {
-                                listItem = keyPair;
-                            }
-                        }
-
-                        if (listItem != null)
-                        {
-                            _insertedKeys.Remove(listItem);
-                        }
-                    }
-                    else
-                    {
-                        Console.Write("Number of records to delete: ");
-                        var deleteCount = int.Parse(Console.ReadLine() ?? $"{TreeCount}") % (TreeCount + 1);
-                        // kvôli náhodnosti prehádžeme zoznam
-                        _insertedKeys = new LinkedList<IComparable[]>(_insertedKeys.OrderBy(o => Generator.Next()));
-                        for (int i = 0; i < deleteCount; i++)
-                        {
-                            var toRemove = _insertedKeys.First.Value;
-                            _tree.Remove(toRemove, Guid.Empty);
-                            _insertedKeys.Remove(toRemove);
-                        }
-                    }
+                    Console.Write("Number of records to delete: ");
+                    var deleteCount = int.Parse(Console.ReadLine() ?? $"{TreeCount}") % (TreeCount + 1);
+                    DoDelete(deleteCount);
                     break;
                 case 1: // Find
                     Console.WriteLine($"Specify {_keyCount} keys.");
                     var userKeys = new List<IComparable>(_keyCount);
-                    for (int i = 0; i < _keyCount; i++)
+                    for (var i = 0; i < _keyCount; i++)
                     {
                         Console.Write($"Key {i + 1}: ");
                         userKeys.Add(int.Parse(Console.ReadLine()!));
                     }
 
-                    if (_tree.TryFindKdtNodes(userKeys, out var vals))
-                    {
-                        Console.WriteLine($"Number of matches: {vals.Count}");
-                        foreach (var val in vals)
-                        {
-                            Console.WriteLine($" - {val.Data}");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Node with given keys doesn't exist.");
-                    }
+                    Console.WriteLine(DoFind(userKeys.ToArray())
+                        ? "Node was funded."
+                        : "Node with given keys doesn't exist.");
                     break;
                 case 0: // Insert
-                    Console.Write("Manual [y/n]: ");
-                    var manuall = Console.ReadKey().KeyChar == 'y';
-                    Console.WriteLine();
-                    if (manuall)
-                    {
-                        Console.WriteLine($"Specify {_keyCount} keys for inserting node.");
-                        var insertKeys = new List<IComparable>(_keyCount);
-                        for (int i = 0; i < _keyCount; i++)
-                        {
-                            Console.Write($"Key {i + 1}: ");
-                            insertKeys.Add(int.Parse(Console.ReadLine()!));
-                        }
-
-                        Console.Write("Data: ");
-                        var data = Console.ReadLine();
-                        _insertedKeys.AddLast(insertKeys.ToArray());
-                        _tree.Add(insertKeys, data);
-                    }
-                    else
-                    {
-                        Console.Write("Number of records (default 1): ");
-                        var count = int.Parse(Console.ReadLine() ?? "1");
-                        for (int i = 0; i < count; i++)
-                        {
-                            var keys = new List<IComparable>(_keyCount);
-                            for (int j = 0; j < _keyCount; j++)
-                            {
-                                keys.Add(Generator.Next());
-                            }
-                            _insertedKeys.AddLast(keys.ToArray());
-                            _tree.Add(keys, i.ToString());
-                        }
-                    }
-                    Console.WriteLine("Insertion completed.");
+                    Console.Write("Number of records (default 1): ");
+                    var count = int.Parse(Console.ReadLine() ?? "1");
+                    DoInsert(count);
                     break;
                 default:
                     Exit = true;
@@ -188,9 +180,19 @@ namespace StructureTestingApp
             Console.WriteLine("[0] Insert");
             Console.WriteLine("[1] Find");
             Console.WriteLine("[2] Delete");
-            Console.WriteLine("[3] Exit");
+            Console.WriteLine("[3] Random Operations");
+            Console.WriteLine("[4] Exit");
         }
-        
-        
+
+        private IComparable[] GenerateKeys(int count)
+        {
+            var keys = new List<IComparable>(_keyCount);
+            for (var j = 0; j < count; j++)
+            {
+                keys.Add(Generator.Next());
+            }
+
+            return keys.ToArray();
+        }
     }
 }
