@@ -4,6 +4,9 @@ using GeoLocApi.Data.Components;
 
 namespace GeoLocApi.Models
 {
+    /// <summary>
+    /// Used to encapsulate Plot's attributes for user preview
+    /// </summary>
     public class PlotModel
     {
         public Guid Id { get; set; }

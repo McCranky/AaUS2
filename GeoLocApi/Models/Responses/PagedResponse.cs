@@ -1,5 +1,9 @@
 ﻿namespace GeoLocApi.Models.Responses
 {
+    /// <summary>
+    /// Paginate data which will be send to user
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class PagedResponse<T>
     {
         public int PageNumber { get; set; }

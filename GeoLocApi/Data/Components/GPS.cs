@@ -7,7 +7,9 @@
         East = 'E',
         West = 'W'
     }
-    
+    /// <summary>
+    /// Stores information about geographical location
+    /// </summary>
     public class GPS
     {
         public char LatitudeSymbol { get; set; }

@@ -4,6 +4,9 @@ using GeoLocApi.Data.Components;
 
 namespace GeoLocApi.Models
 {
+    /// <summary>
+    /// Used to encapsulate Property's attributes for user preview
+    /// </summary>
     public class PropertyModel
     {
         public Guid Id { get; set; }

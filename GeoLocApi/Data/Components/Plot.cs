@@ -3,6 +3,9 @@ using System.Linq;
 
 namespace GeoLocApi.Data.Components
 {
+    /// <summary>
+    /// Represents all data stored about Plot
+    /// </summary>
     public class Plot
     {
         public int Number { get; set; }
@@ -12,7 +15,6 @@ namespace GeoLocApi.Data.Components
             return _properties.Select(prop => prop.Description).ToList();
         }}
         private readonly List<Property> _properties;
-        public bool HasProperties => _properties != null && _properties.Count > 0;
         public GPS Gps { get; set; }
 
         public Plot(int number, string description, GPS gps, List<Property> properties = null)

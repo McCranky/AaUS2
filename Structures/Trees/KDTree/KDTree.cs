@@ -15,7 +15,7 @@ namespace Structures.Trees.KDTree
     {
         public KDTNode<TKey, TValue> Root { get; private set; }
         public int Count { get; private set; }
-        public int KeyCount { get; private set; }
+        private int KeyCount { get; }
 
         public KDTree(int keyCount)
         {
@@ -24,6 +24,12 @@ namespace Structures.Trees.KDTree
             KeyCount = keyCount;
         }
 
+        /// <summary>
+        /// Add a new node with given keys and value.
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <param name="value"></param>
+        /// <returns>Return primary key of added node</returns>
         public override Guid Add(IEnumerable<TKey> keys, TValue value)
         {
             var keyList = keys.ToList();
@@ -59,7 +65,12 @@ namespace Structures.Trees.KDTree
             }
             return newNode.PrimaryKey;
         }
-        
+        /// <summary>
+        /// Remove node with given keys.
+        /// If id is Guid.Empty, then first node found will be removed.
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <param name="id"></param>
         public override void Remove(IEnumerable<TKey> keys, Guid id)
         {
             if (Root == null) return;
@@ -148,20 +159,35 @@ namespace Structures.Trees.KDTree
             node = FindKdtNode(keys, id);
             return node != null;
         }
-
+        /// <summary>
+        /// Find a node with given keys and id
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public KDTNode<TKey, TValue> FindKdtNode(IEnumerable<TKey> keys, Guid id)
         {
             var pointFrom = keys as TKey[] ?? keys.ToArray();
             var nodes = FindInRange(pointFrom, pointFrom);
             return nodes.FirstOrDefault(node => node.PrimaryKey == id);
         }
-        
+        /// <summary>
+        /// Finds all nodes with the given key set.
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <returns></returns>
         public List<KDTNode<TKey, TValue>> FindKdtNodes(IEnumerable<TKey> keys)
         {
             var pointFrom = keys as TKey[] ?? keys.ToArray();
             return FindInRange(pointFrom, pointFrom);
         }
 
+        /// <summary>
+        /// Find all nodes in given range
+        /// </summary>
+        /// <param name="pointFrom">Minimum</param>
+        /// <param name="pointTo">Maximum</param>
+        /// <returns></returns>
         public List<KDTNode<TKey, TValue>> FindInRange(IEnumerable<TKey> pointFrom, IEnumerable<TKey> pointTo)
         {
             var from = pointFrom.ToList();
@@ -195,7 +221,12 @@ namespace Structures.Trees.KDTree
             
             return result;
         }
-
+        /// <summary>
+        /// Finds maximum based on given point level in given side of subtree.
+        /// </summary>
+        /// <param name="startPoint">Point to find maximum for</param>
+        /// <param name="side">Side to search</param>
+        /// <returns></returns>
         private static List<KDTNode<TKey, TValue>> FindMaximum(KDTNode<TKey, TValue> startPoint, Side side)
         {
             var result = new List<KDTNode<TKey, TValue>>();
@@ -242,7 +273,13 @@ namespace Structures.Trees.KDTree
             }
             return result;
         }
-
+        /// <summary>
+        /// Check if one set of key is between bounds 
+        /// </summary>
+        /// <param name="min">The min boundry</param>
+        /// <param name="max">The max boundry</param>
+        /// <param name="value">Value to be checked</param>
+        /// <returns></returns>
         private bool IsBetween(IReadOnlyList<TKey> min, IReadOnlyList<TKey> max, IReadOnlyList<TKey> value)
         {
             for (var i = 0; i < KeyCount; i++)
@@ -253,7 +290,12 @@ namespace Structures.Trees.KDTree
 
             return true;
         }
-
+        /// <summary>
+        /// Assign content from one node to another.
+        /// For removal purposes.
+        /// </summary>
+        /// <param name="nodeToBeAssigned"></param>
+        /// <param name="toThisNode"></param>
         private void AssignNodes(ref KDTNode<TKey, TValue> nodeToBeAssigned,ref  KDTNode<TKey, TValue> toThisNode)
         {
             nodeToBeAssigned.PrimaryKey = toThisNode.PrimaryKey;

@@ -25,7 +25,7 @@ namespace GeoLocApi.Controllers
         {
             var properties = _dataContext.GetProperties();
             var pagedData = properties
-                .OrderBy(prop => prop.RegisterNumber)
+                //.OrderBy(prop => prop.RegisterNumber)
                 .Skip((filter.PageNumber - 1)* filter.PageSize)
                 .Take(filter.PageSize)
                 .ToList();
@@ -42,7 +42,8 @@ namespace GeoLocApi.Controllers
         {
             return Ok(
                 _dataContext.GetPropertiesInRange(fromLat, fromLon, toLat, toLon)
-                    .OrderBy(plot => plot.RegisterNumber));
+                    //.OrderBy(plot => plot.RegisterNumber)
+                );
         }
         
         [HttpGet("properties/{lat}/{lon}")]
@@ -50,7 +51,7 @@ namespace GeoLocApi.Controllers
         {
             var properties = _dataContext.GetPropertyAt(lat, lon);
             var pagedData = properties
-                .OrderBy(prop => prop.RegisterNumber)
+                //.OrderBy(prop => prop.RegisterNumber)
                 .Skip((filter.PageNumber - 1)* filter.PageSize)
                 .Take(filter.PageSize)
                 .ToList();
@@ -76,7 +77,7 @@ namespace GeoLocApi.Controllers
             var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
             var locationUri = baseUrl + "/properties/" + property.Id.ToString();
 
-            var response = new PropertyResponse() { Id = property.Id };
+            var response = new CreatePropertyResponse() { Id = property.Id };
             return Created(locationUri, response);
 
         }

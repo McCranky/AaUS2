@@ -27,10 +27,7 @@ namespace Structures.Trees.KDTree
 
         public KDTNode<TKey, TValue> this[int childIndex]
         {
-            get
-            {
-                return childIndex <= 0 ? LeftChild : RightChild;
-            }
+            get => childIndex <= 0 ? LeftChild : RightChild;
 
             set
             {

@@ -3,6 +3,9 @@ using System.Linq;
 
 namespace GeoLocApi.Data.Components
 {
+    /// <summary>
+    /// Represents all data stored about Property
+    /// </summary>
     public class Property
     {
         public int RegisterNumber { get; set; }

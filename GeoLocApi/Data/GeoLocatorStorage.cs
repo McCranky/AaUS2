@@ -9,6 +9,10 @@ using Structures.Trees.KDTree;
 
 namespace GeoLocApi.Data
 {
+    /// <summary>
+    /// Represents database which is storing data about all properties and plots in 2-dimensional trees
+    /// and is performing all required functionality almost like CRUD on database
+    /// </summary>
     public class GeoLocatorStorage
     {
         public const string PlotsFilePath = "plots.csv";
@@ -23,39 +27,44 @@ namespace GeoLocApi.Data
             PlotTree = new KDTree<double, Plot>(2);
             PropertyTree = new KDTree<double, Property>(2);
         }
-
-        private void SeedData()
+        /// <summary>
+        /// Seeds storage witch required amount of data
+        /// </summary>
+        /// <param name="plotsCount">Count of plots to be inserted</param>
+        /// <param name="propertiesCount">count of properties to be inserted</param>
+        public void SeedData(int plotsCount, int propertiesCount)
         {
             var rnd = new Random();
-            var positions = new List<double[]>();
-            for (var i = 0; i < 500; i++)
+            for (var i = 0; i < plotsCount; i++)
             {
-                var pos = new double[]{rnd.Next() % 50, rnd.Next() % 50};
-                positions.Add(pos);
-                
+                var pos = GenerateRandomKeys();                
                 var gps = new GPS('N', pos[0], 'W', pos[1]);
                 var plot = new Plot(i, $"Desc of plot {i}", gps);
                 PlotTree.Add(pos, plot);
             }
 
-            for (var i = 0; i < 250; i++)
+            for (var i = 0; i < propertiesCount; i++)
             {
-                var pos = positions[rnd.Next(positions.Count - 1)];
+                var pos = GenerateRandomKeys();
+                var gps = new GPS('N', pos[0], 'W', pos[1]);
+                var property = new Property(i, $"Desc of property {i}", gps);
 
-                if (!PlotTree.TryFindKdtNodes(pos, out var plotNodes)) continue;
-                // vytvorenie pozemku
-                var plots = plotNodes.Select(node => node.Data).ToList();
-                var gps = plots[0].Gps;
-                var property = new Property(i, $"Desc of property {i}", gps, plots);
-                // priradenie pozemku všetkym parcelám na ktorých stojí
-                foreach (var plot in plots)
+                if (PlotTree.TryFindKdtNodes(pos, out var plotNodes)) 
                 {
-                    plot.AddProperty(property);
+                    foreach (var plotNode in plotNodes) {
+                        plotNode.Data.AddProperty(property);
+                        property.AddPlot(plotNode.Data);
+                    }
                 }
-                PropertyTree.Add(new []{gps.Latitude, gps.Longitude}, property);
+                
+                PropertyTree.Add(pos, property);
             }
         }
-
+        /// <summary>
+        /// Saves all stored data into csv file format.
+        /// The path is stored in PropertiesFilePath a PlotsFilePath attributes.
+        /// </summary>
+        /// <returns>True if process of saving is successful</returns>
         public bool SaveData()
         {
             try
@@ -77,7 +86,11 @@ namespace GeoLocApi.Data
                 return false;
             }
         }
-
+        /// <summary>
+        /// Loads all data from csv file format into memory.
+        /// The path is to files is stored in PropertiesFilePath a PlotsFilePath attributes.
+        /// </summary>
+        /// <returns>True if process of loading is successful</returns>
         public bool LoadData()
         {
             try
@@ -95,9 +108,9 @@ namespace GeoLocApi.Data
                         new GPS()
                         {
                             LatitudeSymbol = gpsAttributes[0][0],
-                            Latitude = int.Parse(gpsAttributes[1]),
+                            Latitude = double.Parse(gpsAttributes[1]),
                             LongitudeSymbol = gpsAttributes[2][0],
-                            Longitude = int.Parse(gpsAttributes[3]),
+                            Longitude = double.Parse(gpsAttributes[3]),
                         });
                     PlotTree.Add(new []{plot.Gps.Latitude, plot.Gps.Longitude}, plot);
                 }
@@ -114,9 +127,9 @@ namespace GeoLocApi.Data
                         new GPS()
                         {
                             LatitudeSymbol = gpsAttributes[0][0],
-                            Latitude = int.Parse(gpsAttributes[1]),
+                            Latitude = double.Parse(gpsAttributes[1]),
                             LongitudeSymbol = gpsAttributes[2][0],
-                            Longitude = int.Parse(gpsAttributes[3]),
+                            Longitude = double.Parse(gpsAttributes[3]),
                         });
                     var keys = new[] {property.Gps.Latitude, property.Gps.Longitude};
                     PropertyTree.Add(keys, property);
@@ -135,7 +148,10 @@ namespace GeoLocApi.Data
                 return false;
             }
         }
-
+        /// <summary>
+        /// Return all plots stored
+        /// </summary>
+        /// <returns></returns>
         public List<PlotModel> GetPlots()
         {
             return PlotTree
@@ -149,7 +165,14 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-
+        /// <summary>
+        /// Return all plots stored which has gps location between specified boundaries.
+        /// </summary>
+        /// <param name="fromLat"></param>
+        /// <param name="fromLon"></param>
+        /// <param name="toLat"></param>
+        /// <param name="toLon"></param>
+        /// <returns></returns>
         public IEnumerable<PlotModel> GetPlotsInRange(double fromLat, double fromLon, double toLat, double toLon)
         {
             var pointFrom = new []{fromLat, fromLon};
@@ -165,10 +188,15 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-
-        public List<PlotModel> GetPlotAt(double latitude, double longtitude)
+        /// <summary>
+        /// Return all plots at given position
+        /// </summary>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <returns></returns>
+        public List<PlotModel> GetPlotAt(double latitude, double longitude)
         {
-            var pos = new []{latitude, longtitude};
+            var pos = new []{latitude, longitude};
             var nodes = PlotTree.FindInRange(pos, pos);
             return nodes
                 .Select(plotNode => new PlotModel()
@@ -181,7 +209,10 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-        
+        /// <summary>
+        /// Return all properties stored
+        /// </summary>
+        /// <returns></returns>
         public List<PropertyModel> GetProperties()
         {
             return PropertyTree
@@ -195,7 +226,14 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-        
+        /// <summary>
+        /// Return all properties stored which has gps location between specified boundaries.
+        /// </summary>
+        /// <param name="fromLat"></param>
+        /// <param name="fromLon"></param>
+        /// <param name="toLat"></param>
+        /// <param name="toLon"></param>
+        /// <returns></returns>
         public IEnumerable<PropertyModel> GetPropertiesInRange(double fromLat, double fromLon, double toLat, double toLon)
         {
             var pointFrom = new []{fromLat, fromLon};
@@ -211,10 +249,15 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-        
-        public List<PropertyModel> GetPropertyAt(double latitude, double longtitude)
+        /// <summary>
+        /// Return all properties at given position
+        /// </summary>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <returns></returns>
+        public List<PropertyModel> GetPropertyAt(double latitude, double longitude)
         {
-            var pos = new []{latitude, longtitude};
+            var pos = new []{latitude, longitude};
             var nodes = PropertyTree.FindInRange(pos, pos);
             return nodes
                 .Select(propertyNode => new PropertyModel()
@@ -227,7 +270,11 @@ namespace GeoLocApi.Data
                 })
                 .ToList();
         }
-
+        /// <summary>
+        /// Adds Property from given PropertyModel into storage
+        /// </summary>
+        /// <param name="propertyModel"></param>
+        /// <returns>Success of adding</returns>
         public bool AddProperty(PropertyModel propertyModel)
         {
             var keys = new[] {propertyModel.Gps.Latitude, propertyModel.Gps.Longitude};
@@ -247,7 +294,11 @@ namespace GeoLocApi.Data
 
             return true;
         }
-
+        /// <summary>
+        /// Adds Plot from given PlotModel into storage
+        /// </summary>
+        /// <param name="plotModel"></param>
+        /// <returns>Success of adding process</returns>
         public bool AddPlot(PlotModel plotModel)
         {
             var keys = new[] {plotModel.Gps.Latitude, plotModel.Gps.Longitude};
@@ -263,13 +314,23 @@ namespace GeoLocApi.Data
             
             return true;
         }
-
-        public bool ModifyPlot(Guid id, double latitude, double longttude, PlotModel newPlot)
+        /// <summary>
+        /// Modifies stored data about Plot
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <param name="newPlot"></param>
+        /// <returns></returns>
+        public bool ModifyPlot(Guid id, double latitude, double longitude, PlotModel newPlot)
         {
-            var keys = new[] {latitude, longttude};
+            var keys = new[] {latitude, longitude};
             if (!PlotTree.TryFindKdtNode(keys, id, out var plotNode)) return false;
             var plot = plotNode.Data;
-            if (plot.Gps != newPlot.Gps) // zmenila sa gps
+            var tmp = Math.Abs(plot.Gps.Latitude - newPlot.Gps.Latitude);
+            var tmp2 = Math.Abs(plot.Gps.Longitude - newPlot.Gps.Longitude);
+            if (Math.Abs(plot.Gps.Latitude - newPlot.Gps.Latitude) > 0.0001f
+            || Math.Abs(plot.Gps.Longitude - newPlot.Gps.Longitude) > 0.0001f) // zmenila sa gps
             {
                 // musime odobrať pozemok všetkym nehnutelnostiam ku ktorym je viazany
                 if (PropertyTree.TryFindKdtNodes(keys, out var propNodes))
@@ -304,13 +365,21 @@ namespace GeoLocApi.Data
             plot.Number = newPlot.Number;
             return true;
         }
-        
-        public bool ModifyProperty(Guid id, double latitude, double longtitude, PropertyModel newProp)  
+        /// <summary>
+        /// Modifies stored data about Property
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <param name="newProp"></param>
+        /// <returns></returns>
+        public bool ModifyProperty(Guid id, double latitude, double longitude, PropertyModel newProp)  
         {
-            var oldKeys = new[] {latitude, longtitude};
+            var oldKeys = new[] {latitude, longitude};
             if (!PropertyTree.TryFindKdtNode(oldKeys,id, out var propNode)) return false;
             var prop = propNode.Data;
-            if (prop.Gps != newProp.Gps) // zmenila sa gps
+            if (Math.Abs(prop.Gps.Latitude - newProp.Gps.Latitude) > 0.0001f
+                || Math.Abs(prop.Gps.Longitude - newProp.Gps.Longitude) > 0.0001f) // zmenila sa gps
             {
                 // musime odobrať nehnutelnosť všetkym pozemkom ku ktorym je viazany
                 if (PlotTree.TryFindKdtNodes(oldKeys, out var plotNodes))
@@ -345,10 +414,16 @@ namespace GeoLocApi.Data
             prop.RegisterNumber = newProp.RegisterNumber;
             return true;
         }
-
-        public bool RemovePlot(Guid id, double latitude, double longtitude)
+        /// <summary>
+        /// Removes specific Plot from storage
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <returns></returns>
+        public bool RemovePlot(Guid id, double latitude, double longitude)
         {
-            var keys = new[] {latitude, longtitude};
+            var keys = new[] {latitude, longitude};
             if (!PlotTree.TryFindKdtNode(keys, id, out var plot)) return false;
             if (PropertyTree.TryFindKdtNodes(keys, out var propNodes))
             {
@@ -360,10 +435,16 @@ namespace GeoLocApi.Data
             PlotTree.Remove(keys, plot.PrimaryKey);
             return true;
         }
-        
-        public bool RemoveProperty(Guid id, double latitude, double longtitude)
+        /// <summary>
+        /// Removes specific Property from storage
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <returns></returns>
+        public bool RemoveProperty(Guid id, double latitude, double longitude)
         {
-            var keys = new[] {latitude, longtitude};
+            var keys = new[] {latitude, longitude};
             if (!PropertyTree.TryFindKdtNode(keys, id, out var property)) return false;
             if (PlotTree.TryFindKdtNodes(keys, out var plotNodes))
             {
@@ -375,6 +456,17 @@ namespace GeoLocApi.Data
             }
             PropertyTree.Remove(keys, property.PrimaryKey);
             return true;
+        }
+
+        /// <summary>
+        /// Generates random key array of size 2
+        /// </summary>
+        /// <returns></returns>
+        private double[] GenerateRandomKeys()
+        {
+            var rnd = new Random();
+            // return new double[] { Math.Round(rnd.NextDouble() * 100, 3), Math.Round(rnd.NextDouble() * 100, 3) };
+            return new double[] { rnd.Next(1, 15), rnd.Next(1, 15) };
         }
     }
 }

@@ -22,10 +22,9 @@ namespace GeoLocApi.Controllers
         [HttpGet("plots")]
         public IActionResult GetAll([FromQuery] PaginationFilter filter)
         {
-            // var validFilter = new PaginationFilter(filter.PageNumber, filter.PageSize);
             var plots = _dataContext.GetPlots();
             var pagedData = plots
-                .OrderBy(plot => plot.Number)
+                //.OrderBy(plot => plot.Number)
                 .Skip((filter.PageNumber - 1)* filter.PageSize)
                 .Take(filter.PageSize)
                 .ToList();
@@ -42,15 +41,16 @@ namespace GeoLocApi.Controllers
         {
             return Ok(
                 _dataContext.GetPlotsInRange(fromLat, fromLon, toLat, toLon)
-                    .OrderBy(plot => plot.Number));
+                    //.OrderBy(plot => plot.Number)
+                );
         }
 
         [HttpGet("plots/{lat}/{lon}")]
-        public IActionResult Get([FromRoute]double lat, [FromRoute]double lon, [FromQuery] PaginationFilter filter)
+        public IActionResult GetAt([FromRoute]double lat, [FromRoute]double lon, [FromQuery] PaginationFilter filter)
         {
             var plots = _dataContext.GetPlotAt(lat, lon);
             var pagedData = plots
-                .OrderBy(plot => plot.Number)
+                //.OrderBy(plot => plot.Number)
                 .Skip((filter.PageNumber - 1)* filter.PageSize)
                 .Take(filter.PageSize)
                 .ToList();
@@ -75,7 +75,7 @@ namespace GeoLocApi.Controllers
             var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.ToUriComponent()}";
             var locationUri = baseUrl + "/properties/" + plot.Id.ToString();
 
-            var response = new PlotResponse() { Id = plot.Id };
+            var response = new CreatePlotResponse() { Id = plot.Id };
             return Created(locationUri, response);
         }
         

@@ -7,7 +7,7 @@ using GeoLocApi.Models.Responses;
 using GeoLocApi.Utils;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GeoLocApi.Controllers 
+namespace GeoLocApi.Controllers
 {
     public class StorageController: Controller
     {
@@ -22,19 +22,26 @@ namespace GeoLocApi.Controllers
         [HttpGet("storageInfo")]
         public IActionResult GetInfo()
         {
-            return Ok(new StorageInfoRequest()
+            return Ok(new StorageInfoResponse()
             {
                 PlotsCount = _dataContext.PlotsCount,
                 PropertiesCount = _dataContext.PropertiesCount
             });
         }
-        
+
+        [HttpGet("seed")]
+        public IActionResult Seed([FromQuery] StorageSeedRequest seedRequest)
+        {
+            _dataContext.SeedData(seedRequest.PlotsCount, seedRequest.PropertiesCount);
+            return Ok("Data successfully seeded.");
+        }
+
         [HttpGet("load")]
         public IActionResult Load()
         {
             if (_dataContext.LoadData())
             {
-                return Ok(new StorageInfoRequest()
+                return Ok(new StorageInfoResponse()
                 {
                     PlotsCount = _dataContext.PlotsCount,
                     PropertiesCount = _dataContext.PropertiesCount
@@ -49,7 +56,7 @@ namespace GeoLocApi.Controllers
         {
             if (_dataContext.SaveData())
             {
-                return Ok(new StorageInfoRequest()
+                return Ok(new StorageInfoResponse()
                 {
                     PlotsCount = _dataContext.PlotsCount,
                     PropertiesCount = _dataContext.PropertiesCount
